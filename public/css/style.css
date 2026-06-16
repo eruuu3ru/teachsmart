@@ -103,12 +103,12 @@ html {
 }
 
 body {
-  padding-top: 80px;
   font-family: var(--font-sans);
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  padding-top: 80px;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -2784,11 +2784,11 @@ body {
 .light-theme .subject-card,
 .light-theme .form-card,
 .light-theme .pending-card {
-  background: rgba(255, 255, 255, 0.65) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-color: rgba(0, 0, 0, 0.06) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03) !important;
 }
 
 .light-theme .product-card:hover,
@@ -2797,9 +2797,9 @@ body {
 .light-theme .subject-card:hover,
 .light-theme .form-card:hover {
   transform: translateY(-4px) !important;
-  border-color: rgba(99, 102, 241, 0.12) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
-  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
 }
 
 
