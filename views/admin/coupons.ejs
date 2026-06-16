@@ -1,0 +1,160 @@
+<%- include('../partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="admin-page">
+  <!-- Header -->
+  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <h1 style="margin: 0;">Manage Coupons</h1>
+    </div>
+    <div>
+      <a href="/admin" class="btn btn-secondary btn-sm">← Back to Overview</a>
+    </div>
+  </div>
+
+  <!-- Admin Sub Navigation Tabs -->
+  <div class="filter-tabs" style="margin-bottom: 2rem;">
+    <a href="/admin" class="filter-tab">Overview</a>
+    <a href="/admin/orders" class="filter-tab">Orders</a>
+    <a href="/admin/users" class="filter-tab">Users</a>
+    <a href="/admin/content" class="filter-tab">Content</a>
+    <a href="/admin/coupons" class="filter-tab active">Coupons</a>
+    <a href="/admin/alerts" class="filter-tab">Alerts</a>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;" class="content-layout">
+    
+    <!-- Left Column: Create Coupon Form -->
+    <div>
+      <div class="glass-card" style="padding: 1.5rem;">
+        <h3 style="margin-top: 0; font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem;">
+          Create Coupon
+        </h3>
+        
+        <form action="/admin/coupons/create" method="POST">
+          <div class="form-group">
+            <label for="code">Coupon Code <span class="required">*</span></label>
+            <input type="text" id="code" name="code" class="form-control" required style="text-transform: uppercase;" autocomplete="off">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="discount_percent">Discount (%)</label>
+              <input type="number" id="discount_percent" name="discount_percent" class="form-control" min="0" max="100" step="0.1">
+            </div>
+            
+            <div class="form-group">
+              <label for="discount_amount">Discount (₱)</label>
+              <input type="number" id="discount_amount" name="discount_amount" class="form-control" min="0" step="1">
+            </div>
+          </div>
+          
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; margin-top: -8px; line-height: 1.3;">
+            * Fill only one. If both are set, percentage discount takes precedence.
+          </div>
+
+          <div class="form-group">
+            <label for="max_uses">Usage Limit</label>
+            <input type="number" id="max_uses" name="max_uses" class="form-control" min="-1" required>
+            <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">Enter <code>-1</code> for unlimited usage.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="expires_at">Expiration Date</label>
+            <input type="date" id="expires_at" name="expires_at" class="form-control">
+            <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">Leave blank for no expiration date.</small>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Generate Coupon
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right Column: Coupons List -->
+    <div>
+      <div class="glass-card" style="padding: 1.5rem;">
+        <h3 style="margin-top: 0; font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem;">
+          Active Coupons (<%= coupons.length %>)
+        </h3>
+
+        <% if (coupons.length === 0) { %>
+          <p style="color: var(--text-muted); text-align: center; padding: 4rem 0;">
+            No coupons generated yet. Use the sidebar form to create one.
+          </p>
+        <% } else { %>
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Discount Offer</th>
+                  <th>Limit Usage</th>
+                  <th>Status</th>
+                  <th>Expires On</th>
+                  <th>Date Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% coupons.forEach(coupon => { %>
+                  <tr>
+                    <td>
+                      <code style="font-size: 0.95rem; color: var(--color-accent); font-weight: bold; background: rgba(255, 255, 255, 0.03); padding: 4px 8px; border-radius: 4px;">
+                        <%= coupon.code %>
+                      </code>
+                    </td>
+                    <td style="font-weight: 700; color: var(--text-primary);">
+                      <% if (coupon.discount_percent > 0) { %>
+                        <%= coupon.discount_percent %>% Off
+                      <% } else if (coupon.discount_amount > 0) { %>
+                        ₱<%= coupon.discount_amount.toFixed(2) %> Off
+                      <% } else { %>
+                        0% Off
+                      <% } %>
+                    </td>
+                    <td>
+                      <%= coupon.used_count %> / <%= coupon.max_uses === -1 ? '∞' : coupon.max_uses %>
+                    </td>
+                    <td>
+                      <% 
+                        const expired = coupon.expires_at && new Date(coupon.expires_at) < new Date();
+                        const limitReached = coupon.max_uses !== -1 && coupon.used_count >= coupon.max_uses;
+                        const active = coupon.is_active && !expired && !limitReached;
+                      %>
+                      <span class="badge badge-<%= active ? 'verified' : 'rejected' %>">
+                        <%= active ? 'Active' : (expired ? 'Expired' : (limitReached ? 'Limit Reached' : 'Disabled')) %>
+                      </span>
+                    </td>
+                    <td>
+                      <%= coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString() : 'Never' %>
+                    </td>
+                    <td>
+                      <%= new Date(coupon.created_at).toLocaleDateString() %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+<style>
+  @media (max-width: 900px) {
+    .content-layout {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>

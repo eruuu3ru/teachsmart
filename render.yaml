@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: reviewvault
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    disk:
+      name: data
+      mountPath: /opt/data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: DATA_DIR
+        value: /opt/data
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@reviewvault.com
+      - key: ADMIN_PASSWORD
+        value: admin123
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: your-email@gmail.com
+      - key: SMTP_PASS
+        value: your-app-password
+      - key: SMTP_FROM
+        value: ReviewVault <your-email@gmail.com>
+      - key: MAX_DEVICES
+        value: "2"

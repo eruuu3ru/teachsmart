@@ -1,0 +1,253 @@
+<%- include('partials/header') %>
+
+<!-- Animated Background -->
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+  <div class="bg-glow-line"></div>
+</div>
+
+<!-- Hero Section — Split layout with inline login -->
+<section class="hero hero-split" id="hero">
+  <!-- Floating shapes for moving animation in the hero section -->
+  <div class="hero-floating-shapes">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+  </div>
+
+  <div class="hero-left">
+    <h1>
+      Ace Your<br>
+      Board Exam<br>
+      <span class="gradient-text">with Confidence.</span>
+    </h1>
+    <p>Premium LET Reviewers and English Tutorials — accessible anytime, anywhere. Study at your own pace with secure, high-quality materials designed to help you pass.</p>
+    <div class="hero-cta">
+      <a href="#products" class="btn btn-primary btn-lg">Browse Reviewers</a>
+    </div>
+
+
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-login-card">
+      <div class="login-card-header">
+        <h3>MEMBER LOGIN</h3>
+      </div>
+
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form action="/login" method="POST" id="heroLoginForm">
+        <div class="form-group">
+          <label for="hero_unique_id">Unique ID</label>
+          <input type="text" id="hero_unique_id" name="unique_id" class="form-control" placeholder="ENTER UNIQUE ID" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="hero_password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="hero_password" name="password" class="form-control" placeholder="ENTER PASSWORD" required>
+            <button type="button" class="toggle-password" onclick="togglePassword(this)" aria-label="Toggle password visibility">
+              <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-bottom-row">
+          <button type="submit" class="btn btn-login-submit">Login</button>
+          <div class="form-options">
+            <label class="checkbox-container">
+              <input type="checkbox" name="remember">
+              <span class="checkbox-text">REMEMBER</span>
+            </label>
+            <a href="/register" class="forgot-link">REGISTER?</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Products Section -->
+<section class="products-section" id="products">
+  <div class="section-header">
+    <p class="overline">Our Reviewers</p>
+    <h2>Choose Your Path to Success</h2>
+    <p>Select the reviewer that fits your exam preparation needs</p>
+  </div>
+
+  <div class="products-grid">
+    <% products.forEach(function(product, i) { %>
+      <div class="product-card reveal-card <%= i === 1 ? 'highlighted' : '' %>" style="animation-delay: <%= i * 0.12 %>s">
+        <% if (i === 1) { %>
+          <div class="popular-ribbon" style="position: absolute; top: 12px; right: 12px; background: var(--color-success); color: #000; font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.5px;">Most Popular</div>
+        <% } %>
+        <div class="card-accent-line"></div>
+        <span class="category-badge"><%= product.category %></span>
+        <h3 class="product-title" style="margin-top: 10px;"><%= product.name %></h3>
+        <p class="product-description"><%= product.description %></p>
+        
+        <!-- Highlights Checklist -->
+        <ul class="product-highlights" style="list-style: none; padding: 0; margin: 1.5rem 0; font-size: 0.82rem; display: flex; flex-direction: column; gap: 8px;">
+          <% if (product.name.includes('General Education')) { %>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+          <% } else if (product.name.includes('Professional Education')) { %>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+          <% } else { %>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+            <li style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></li>
+          <% } %>
+        </ul>
+
+        <div class="card-pricing-footer">
+          <% if (product.name.includes('English')) { %>
+            <div class="price-box" style="opacity: 0.5;">
+              <span class="currency">₱</span>
+              <span class="amount"><%= product.price.toFixed(0) %></span>
+              <span class="period">Maintenance</span>
+            </div>
+            <button class="btn btn-secondary btn-card-cta" style="cursor: not-allowed; opacity: 0.6;" disabled>Out of Maintenance</button>
+          <% } else { %>
+            <div class="price-box">
+              <span class="currency">₱</span>
+              <span class="amount"><%= product.price.toFixed(0) %></span>
+              <span class="period">one-time access</span>
+            </div>
+            <a href="/register" class="btn-card-cta">Unlock Reviewer</a>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section" id="features">
+  <div class="section-header">
+    <p class="overline">Why TeachSmart</p>
+    <h2>Built for Secure Learning</h2>
+    <p>Your study materials, protected and accessible</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-item reveal-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <h4>Instant Access</h4>
+      <p>Once payment is verified, get your credentials instantly via email. Start studying right away.</p>
+    </div>
+    <div class="feature-item reveal-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      </div>
+      <h4>Mobile Friendly</h4>
+      <p>Study on any device — phone, tablet, or desktop. Your reviewer adapts to your screen.</p>
+    </div>
+    <div class="feature-item reveal-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <h4>Easy Payment</h4>
+      <p>Pay via GCash, UnionBank, or MariBank. Just scan the QR code and you're set.</p>
+    </div>
+    <div class="feature-item reveal-card">
+      <div class="feature-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      </div>
+      <h4>Lifetime Access</h4>
+      <p>Purchase once, study forever. Come back anytime to review your purchased materials.</p>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="how-section" id="how">
+  <div class="section-header">
+    <p class="overline">How It Works</p>
+    <h2>4 Simple Steps</h2>
+  </div>
+
+  <div class="steps-timeline">
+    <div class="step-item reveal-card" style="animation-delay: 0s">
+      <div class="step-number-circle">1</div>
+      <div class="step-content">
+        <h4>Choose Reviewer</h4>
+        <p>Select your LET reviewer or English tutorial from our catalog.</p>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item reveal-card" style="animation-delay: 0.1s">
+      <div class="step-number-circle">2</div>
+      <div class="step-content">
+        <h4>Pay via QR Code</h4>
+        <p>Scan the QR code with GCash, UnionBank, or MariBank.</p>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item reveal-card" style="animation-delay: 0.2s">
+      <div class="step-number-circle">3</div>
+      <div class="step-content">
+        <h4>Get Credentials</h4>
+        <p>Receive your unique login ID and password via email.</p>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item reveal-card" style="animation-delay: 0.3s">
+      <div class="step-number-circle">4</div>
+      <div class="step-content">
+        <h4>Start Reading</h4>
+        <p>Login and read your reviewer anytime, anywhere on our secure platform.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="cta-card">
+    <h2>Ready to Start Your Journey?</h2>
+    <p>Join hundreds of aspiring teachers who trust TeachSmart Academy for their board exam preparation.</p>
+    <a href="/register" class="btn btn-primary btn-lg">Get Your Reviewer Now</a>
+  </div>
+</section>
+
+<!-- Scroll reveal script -->
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal-card').forEach(el => observer.observe(el));
+
+  function togglePassword(btn) {
+    const wrapper = btn.closest('.password-wrapper');
+    const input = wrapper.querySelector('input');
+    const eye = btn.querySelector('.eye-icon');
+    const eyeOff = btn.querySelector('.eye-off-icon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      eye.style.display = 'none';
+      eyeOff.style.display = '';
+    } else {
+      input.type = 'password';
+      eye.style.display = '';
+      eyeOff.style.display = 'none';
+    }
+  }
+</script>
+
+<%- include('partials/footer') %>

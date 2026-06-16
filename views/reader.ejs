@@ -1,0 +1,585 @@
+<%- include('partials/header') %>
+
+<!-- PDF.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+</script>
+
+<div class="reader-page theme-dark">
+  <!-- Table of Contents Sidebar -->
+  <aside class="reader-sidebar" id="sidebar" style="display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+      <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary);">CHAPTERS</span>
+      <button class="btn btn-secondary btn-sm" id="closeSidebarMobile" style="padding: 4px 8px; border-radius: 4px; display: none;">✕</button>
+    </div>
+    
+    <!-- TOC Filter Search -->
+    <div style="margin-bottom: 1.2rem;">
+      <input type="text" id="tocSearch" placeholder="Search chapters..." style="width: 100%; padding: 10px 14px; font-size: 0.82rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); outline: none; transition: var(--transition-fast);">
+    </div>
+    
+    <!-- TOC List -->
+    <ul class="toc-list" style="flex-grow: 1; overflow-y: auto; max-height: calc(100vh - 380px);">
+      <% if (hasPdf) { %>
+        <div id="pdfTocList">
+          <p style="color: var(--text-muted); font-size: 0.75rem; text-align: center; padding: 1rem 0;">Loading PDF index...</p>
+        </div>
+      <% } else { %>
+        <% pages.forEach(function(page) { %>
+          <li class="toc-item <%= page.page_number === 1 ? 'active' : '' %>" data-page="<%= page.page_number %>" style="display: flex; align-items: center; gap: 8px;">
+            <span class="page-num"><%= page.page_number %></span>
+            <span class="page-title-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px;"><%= page.title %></span>
+          </li>
+        <% }); %>
+      <% } %>
+    </ul>
+
+    <!-- Study Notes Panel -->
+    <div style="margin-top: auto; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+      <h4 style="margin: 0; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary);">Study Notes</h4>
+      <textarea id="studyNotesText" style="width: 100%; height: 110px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-sans); font-size: 0.8rem; padding: 8px; resize: none; outline: none; line-height: 1.4;" placeholder="Take notes here. They are saved automatically for this page..."></textarea>
+    </div>
+  </aside>
+
+  <!-- Main Viewer Panel -->
+  <main class="reader-main" id="readerMainPanel">
+    <div class="reader-toolbar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="btn btn-secondary btn-sm" id="toggleSidebar" style="padding: 6px 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          <span>Sidebar</span>
+        </button>
+        <span class="toolbar-title"><%= product.name %></span>
+      </div>
+      
+      <!-- Premium Text Customizer & Toolbar Controls -->
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <!-- Font Size Controls (For Text Reviewers) -->
+        <div id="fontSizeControls" style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 3px; border-radius: var(--radius-sm); <%= hasPdf ? 'display: none;' : '' %>">
+          <button class="font-sz-btn" id="decFont" style="background: transparent; border: none; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 600;" title="Decrease Text Size">A-</button>
+          <button class="font-sz-btn" id="incFont" style="background: transparent; border: none; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 600;" title="Increase Text Size">A+</button>
+        </div>
+
+        <!-- Zoom Controls (Supported for BOTH Text & PDF views!) -->
+        <div class="toolbar-actions" id="zoomControls" style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 3px; border-radius: var(--radius-sm);">
+          <button class="btn btn-secondary btn-sm" id="zoomOut" title="Zoom Out" style="background: transparent; border: none; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 800;">-</button>
+          <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); padding: 0 4px;" id="zoomVal">100%</span>
+          <button class="btn btn-secondary btn-sm" id="zoomIn" title="Zoom In" style="background: transparent; border: none; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 800;">+</button>
+        </div>
+
+        <!-- Fullscreen Mode Toggle Button -->
+        <button class="btn btn-secondary btn-sm" id="toggleFullscreen" style="padding: 6px 12px; font-weight: 600; font-size: 0.75rem;" title="Toggle Fullscreen Focus Mode">
+          Fullscreen
+        </button>
+
+        <span class="toolbar-pages" id="toolbarPages">Page 1 of <%= hasPdf ? '--' : pages.length %></span>
+      </div>
+    </div>
+
+    <!-- Reader Paper Content Area -->
+    <div class="reader-content" id="readerContentContainer">
+      <div class="book-page" id="bookPage">
+        <!-- Secure Watermark Overlay -->
+        <div class="watermark-overlay" id="watermarkOverlay"></div>
+        
+        <!-- Header detail -->
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #888; margin-bottom: 2rem; font-family: var(--font-sans); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; font-weight: 500;">
+          <span><%= product.name %></span>
+          <span style="font-style: italic;">TeachSmart Academy</span>
+        </div>
+
+        <!-- Text reviewer view -->
+        <div id="textViewContainer" style="<%= hasPdf ? 'display: none;' : '' %>">
+          <h2 class="page-title" id="pageTitle" style="font-family: var(--font-serif); font-weight: 700;">Loading Chapter...</h2>
+          <div class="page-content" id="pageContent" style="font-family: var(--font-serif); font-size: 1.05rem; white-space: pre-wrap; line-height: 1.8;">
+            Retrieving page content securely...
+          </div>
+        </div>
+
+        <!-- PDF viewer canvas -->
+        <div id="pdfViewContainer" style="<%= hasPdf ? 'display: flex; justify-content: center; min-height: 500px;' : 'display: none;' %>">
+          <canvas id="pdfCanvas" style="display: block; max-width: 100%; height: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: var(--radius-sm);"></canvas>
+        </div>
+        
+        <div class="page-number" id="pageNumber">Page --</div>
+      </div>
+    </div>
+
+    <!-- Sticky Navigation Bar -->
+    <div class="page-nav">
+      <button class="btn-page" id="prevPage" disabled>&lt; Prev</button>
+      <div class="page-indicator" id="pageIndicator">Page 1 / <%= hasPdf ? '--' : pages.length %></div>
+      <button class="btn-page" id="nextPage">Next &gt;</button>
+    </div>
+  </main>
+</div>
+
+<%- include('partials/footer') %>
+
+<style>
+  /* Page Transition Animation styles */
+  .book-page {
+    transition: opacity 0.15s ease-in-out, max-width 0.2s ease, transform 0.2s ease;
+    transform-origin: top center;
+  }
+  .book-page.page-fade-out {
+    opacity: 0.05;
+  }
+
+  /* Themes Styling overrides (Dark mode locked) */
+  .reader-page {
+    background: #000000;
+  }
+  .reader-page .book-page {
+    background: #0D0D0E !important;
+    color: #E2E2E6 !important;
+    border-color: #1E1E22 !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 30px rgba(255,255,255,0.01);
+  }
+  .reader-page .book-page .page-title {
+    color: #E2E2E6 !important;
+    border-bottom-color: #2E2E34 !important;
+  }
+  .reader-page .book-page .page-content {
+    color: #CCCCCC !important;
+  }
+
+  /* Fullscreen specific stylesheet overrides */
+  #readerMainPanel:fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #000000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    z-index: 99999 !important;
+    padding: 0 !important;
+  }
+  #readerMainPanel:fullscreen .reader-toolbar {
+    background: #0D0D0E !important;
+    border-bottom: 1px solid #1E1E22 !important;
+  }
+  #readerMainPanel:fullscreen .reader-content {
+    background: #000000 !important;
+    height: calc(100vh - 120px) !important;
+  }
+  #readerMainPanel:fullscreen .page-nav {
+    background: #0D0D0E !important;
+    border-top: 1px solid #1E1E22 !important;
+  }
+
+  /* Extra reader responsive tweaks */
+  @media (max-width: 768px) {
+    #closeSidebarMobile {
+      display: inline-block !important;
+    }
+  }
+  
+  /* Disable dragging on reader content elements */
+  .book-page, .page-title, .page-content, .page-number {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    pointer-events: auto;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const productId = <%= product.id %>;
+    const hasPdf = <%= hasPdf %>;
+    const userId = '<%= user.userId || user.id %>';
+    
+    let totalPages = <%= hasPdf ? '0' : pages.length %>;
+    let currentPage = 1;
+    let pdfDoc = null;
+    let currentScale = 1.3;
+    let textScale = 1.0; // Scale multiplier for book-page width
+    let renderingPage = false;
+    let pendingRenderPageNum = null;
+    
+    // Font size scaling setup
+    let currentFontSize = parseFloat(localStorage.getItem('tsa_reader_fs') || '1.05');
+    
+    const pageTitle = document.getElementById('pageTitle');
+    const pageContent = document.getElementById('pageContent');
+    const pageNumber = document.getElementById('pageNumber');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const toolbarPages = document.getElementById('toolbarPages');
+    const watermarkOverlay = document.getElementById('watermarkOverlay');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebar = document.getElementById('toggleSidebar');
+    const closeSidebarMobile = document.getElementById('closeSidebarMobile');
+    const readerContentContainer = document.getElementById('readerContentContainer');
+    const bookPage = document.getElementById('bookPage');
+    const studyNotesText = document.getElementById('studyNotesText');
+    const tocSearch = document.getElementById('tocSearch');
+    const zoomVal = document.getElementById('zoomVal');
+    
+    // Apply font size initially
+    if (!hasPdf) {
+      applyFontSize();
+    }
+    
+    function applyFontSize() {
+      if (pageContent) {
+        pageContent.style.fontSize = `${currentFontSize}rem`;
+      }
+    }
+    
+    // Font sizing action handlers
+    const decFont = document.getElementById('decFont');
+    const incFont = document.getElementById('incFont');
+    if (decFont && incFont) {
+      decFont.addEventListener('click', () => {
+        if (currentFontSize > 0.85) {
+          currentFontSize -= 0.05;
+          localStorage.setItem('tsa_reader_fs', currentFontSize);
+          applyFontSize();
+        }
+      });
+      
+      incFont.addEventListener('click', () => {
+        if (currentFontSize < 1.6) {
+          currentFontSize += 0.05;
+          localStorage.setItem('tsa_reader_fs', currentFontSize);
+          applyFontSize();
+        }
+      });
+    }
+
+    // Notes auto-saving logic
+    function loadNotes(pageNum) {
+      const notesKey = `tsa_notes_${userId}_${productId}_${pageNum}`;
+      studyNotesText.value = localStorage.getItem(notesKey) || '';
+    }
+
+    studyNotesText.addEventListener('input', () => {
+      const notesKey = `tsa_notes_${userId}_${productId}_${currentPage}`;
+      localStorage.setItem(notesKey, studyNotesText.value);
+    });
+    
+    // TOC Search logic
+    tocSearch.addEventListener('input', function() {
+      const query = this.value.toLowerCase();
+      document.querySelectorAll('.toc-item').forEach(item => {
+        const titleText = item.querySelector('.page-title-text').innerText.toLowerCase();
+        if (titleText.includes(query)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+
+    // Sidebar handlers
+    toggleSidebar.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+    
+    closeSidebarMobile.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+    });
+
+    // Zoom Handlers (Works on BOTH Text & PDF views!)
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      if (hasPdf) {
+        if (currentScale < 2.5) {
+          currentScale += 0.15;
+          zoomVal.innerText = `${Math.round(currentScale * 77)}%`;
+          renderPdfPage(currentPage);
+        }
+      } else {
+        if (textScale < 1.6) {
+          textScale += 0.1;
+          bookPage.style.maxWidth = `${720 * textScale}px`;
+          zoomVal.innerText = `${Math.round(textScale * 100)}%`;
+        }
+      }
+    });
+
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      if (hasPdf) {
+        if (currentScale > 0.7) {
+          currentScale -= 0.15;
+          zoomVal.innerText = `${Math.round(currentScale * 77)}%`;
+          renderPdfPage(currentPage);
+        }
+      } else {
+        if (textScale > 0.8) {
+          textScale -= 0.1;
+          bookPage.style.maxWidth = `${720 * textScale}px`;
+          zoomVal.innerText = `${Math.round(textScale * 100)}%`;
+        }
+      }
+    });
+
+    // Fullscreen Reading Mode handler
+    const toggleFullscreen = document.getElementById('toggleFullscreen');
+    toggleFullscreen.addEventListener('click', () => {
+      const pageEl = document.getElementById('readerMainPanel');
+      if (!document.fullscreenElement) {
+        pageEl.requestFullscreen().then(() => {
+          toggleFullscreen.innerText = "Exit Fullscreen";
+        }).catch(err => {
+          console.error("Fullscreen error:", err);
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          toggleFullscreen.innerText = "Fullscreen";
+        });
+      }
+    });
+
+    // Sync fullscreen button text if user exits using Esc key
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        toggleFullscreen.innerText = "Fullscreen";
+      }
+    });
+
+    // Swipe Navigation logic
+    let touchstartX = 0;
+    let touchendX = 0;
+    
+    function handleGesture() {
+      const diffX = touchendX - touchstartX;
+      // swipe thresholds
+      if (Math.abs(diffX) > 60) {
+        if (diffX < 0) {
+          // Swiped Left -> Next Page
+          if (currentPage < totalPages) {
+            loadPage(currentPage + 1);
+          }
+        } else {
+          // Swiped Right -> Previous Page
+          if (currentPage > 1) {
+            loadPage(currentPage - 1);
+          }
+        }
+      }
+    }
+    
+    readerContentContainer.addEventListener('touchstart', e => {
+      touchstartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    readerContentContainer.addEventListener('touchend', e => {
+      touchendX = e.changedTouches[0].screenX;
+      handleGesture();
+    }, { passive: true });
+
+    // PDF.js rendering logic
+    async function loadPdfDocument() {
+      try {
+        const url = `/reader/${productId}/pdf`;
+        pdfDoc = await pdfjsLib.getDocument(url).promise;
+        totalPages = pdfDoc.numPages;
+        
+        // Populate TOC dynamically for PDF pages
+        const tocList = document.getElementById('pdfTocList');
+        tocList.innerHTML = '';
+        
+        for (let i = 1; i <= totalPages; i++) {
+          const li = document.createElement('li');
+          li.className = `toc-item ${i === 1 ? 'active' : ''}`;
+          li.setAttribute('data-page', i);
+          li.style.display = 'flex';
+          li.style.alignItems = 'center';
+          li.style.gap = '8px';
+          li.style.cursor = 'pointer';
+          
+          li.innerHTML = `
+            <span class="page-num">${i}</span>
+            <span class="page-title-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px;">Page ${i}</span>
+          `;
+          
+          li.addEventListener('click', () => {
+            loadPage(i);
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove('open');
+            }
+          });
+          
+          tocList.appendChild(li);
+        }
+        
+        await loadPage(currentPage);
+      } catch (err) {
+        console.error(err);
+        pageTitle.innerText = "Secure PDF Connection Error";
+        pageContent.innerHTML = `<span style="color: var(--color-danger);">Failed to retrieve PDF reviewer file. Please log out and back in.</span>`;
+      }
+    }
+
+    async function renderPdfPage(pageNum) {
+      if (renderingPage) {
+        pendingRenderPageNum = pageNum;
+        return;
+      }
+      renderingPage = true;
+
+      try {
+        const page = await pdfDoc.getPage(pageNum);
+        const canvas = document.getElementById('pdfCanvas');
+        const context = canvas.getContext('2d');
+        
+        const viewport = page.getViewport({ scale: currentScale });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        await page.render(renderContext).promise;
+
+        // Draw secure watermark
+        const watermarkText = watermarkOverlay.getAttribute('data-watermark-text') || 'SECURE MEMBER';
+        context.save();
+        context.font = 'bold 15px sans-serif';
+        context.fillStyle = 'rgba(128, 128, 128, 0.09)';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.translate(canvas.width / 2, canvas.height / 2);
+        context.rotate(-30 * Math.PI / 180);
+
+        const stepX = 260;
+        const stepY = 160;
+        const bounds = Math.max(canvas.width, canvas.height) * 1.5;
+        for (let x = -bounds; x < bounds; x += stepX) {
+          for (let y = -bounds; y < bounds; y += stepY) {
+            context.fillText(watermarkText, x, y);
+          }
+        }
+        context.restore();
+
+      } catch (e) {
+        console.error('Render error:', e);
+      } finally {
+        renderingPage = false;
+        if (pendingRenderPageNum !== null) {
+          const nextNum = pendingRenderPageNum;
+          pendingRenderPageNum = null;
+          renderPdfPage(nextNum);
+        }
+      }
+    }
+
+    // Unified Page Loader
+    async function loadPage(pageNum) {
+      if (pageNum < 1 || pageNum > totalPages) return;
+      
+      bookPage.classList.add('page-fade-out');
+      
+      setTimeout(async () => {
+        readerContentContainer.scrollTop = 0;
+        
+        try {
+          if (hasPdf) {
+            currentPage = pageNum;
+            loadNotes(pageNum);
+            
+            const response = await fetch(`/reader/${productId}/page/1`);
+            const data = await response.json();
+            watermarkOverlay.setAttribute('data-watermark-text', data.watermark);
+            
+            await renderPdfPage(pageNum);
+            
+            pageNumber.innerText = `Page ${currentPage} of ${totalPages}`;
+            pageIndicator.innerText = `Page ${currentPage} / ${totalPages}`;
+            toolbarPages.innerText = `Page ${currentPage} of ${totalPages}`;
+          } else {
+            const response = await fetch(`/reader/${productId}/page/${pageNum}`);
+            if (!response.ok) {
+              throw new Error('Access denied or page not found');
+            }
+            
+            const data = await response.json();
+            
+            pageTitle.innerText = data.title;
+            pageContent.innerText = data.content;
+            pageNumber.innerText = `Page ${data.pageNumber} of ${data.totalPages}`;
+            
+            currentPage = data.pageNumber;
+            loadNotes(currentPage);
+            
+            pageIndicator.innerText = `Page ${currentPage} / ${totalPages}`;
+            toolbarPages.innerText = `Page ${currentPage} of ${totalPages}`;
+            
+            // Repeating watermark
+            const wmString = `${data.watermark}   •   `;
+            const repeatedText = wmString.repeat(8);
+            const wmLines = Array(22).fill(repeatedText).join('<br><br>');
+            
+            watermarkOverlay.innerHTML = `
+              <div style="transform: rotate(-28deg); opacity: 0.035; color: var(--text-primary); font-size: 0.85rem; font-weight: bold; width: 170%; height: 170%; position: absolute; top: -35%; left: -35%; pointer-events: none; line-height: 2.8; font-family: 'Inter', sans-serif; text-transform: uppercase; user-select: none; text-align: center; white-space: nowrap;">${wmLines}</div>
+            `;
+          }
+          
+          document.querySelectorAll('.toc-item').forEach(item => {
+            const itemPageNum = parseInt(item.getAttribute('data-page'));
+            if (itemPageNum === currentPage) {
+              item.classList.add('active');
+            } else {
+              item.classList.remove('active');
+            }
+          });
+          
+          prevPage.disabled = (currentPage === 1);
+          nextPage.disabled = (currentPage === totalPages);
+          
+          // Save reading progress to localStorage
+          const progressKey = `tsa_progress_${userId}_${productId}`;
+          const savedProgress = localStorage.getItem(progressKey);
+          let maxPage = currentPage;
+          if (savedProgress) {
+            try {
+              const { page } = JSON.parse(savedProgress);
+              maxPage = Math.max(page || 1, currentPage);
+            } catch (e) {}
+          }
+          localStorage.setItem(progressKey, JSON.stringify({ page: maxPage, total: totalPages }));
+          
+        } catch (err) {
+          console.error(err);
+          if (!hasPdf) {
+            pageTitle.innerText = "Secure Connection Error";
+            pageContent.innerHTML = `<span style="color: var(--color-danger);">Failed to load page content securely. Please log out and back in.</span>`;
+          }
+        } finally {
+          bookPage.classList.remove('page-fade-out');
+        }
+      }, 150);
+    }
+    
+    prevPage.addEventListener('click', () => {
+      if (currentPage > 1) {
+        loadPage(currentPage - 1);
+      }
+    });
+    
+    nextPage.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        loadPage(currentPage + 1);
+      }
+    });
+    
+    document.querySelectorAll('.toc-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const destPage = parseInt(this.getAttribute('data-page'));
+        loadPage(destPage);
+        if (window.innerWidth <= 768) {
+          sidebar.classList.remove('open');
+        }
+      });
+    });
+
+    if (hasPdf) {
+      loadPdfDocument();
+    } else {
+      loadPage(currentPage);
+    }
+  });
+</script>

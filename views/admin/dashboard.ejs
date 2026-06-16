@@ -1,0 +1,126 @@
+<%- include('../partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="admin-page">
+  <!-- Header -->
+  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <h1 style="margin: 0;">Admin Control Panel</h1>
+    </div>
+    <div>
+      <a href="/dashboard" class="btn btn-secondary btn-sm">Student Library</a>
+      <a href="/logout" class="btn btn-danger btn-sm">Logout</a>
+    </div>
+  </div>
+
+  <!-- Admin Sub Navigation Tabs -->
+  <div class="filter-tabs" style="margin-bottom: 2.5rem;">
+    <a href="/admin" class="filter-tab active">Overview</a>
+    <a href="/admin/orders" class="filter-tab">Orders (<%= stats.pendingOrders %>)</a>
+    <a href="/admin/users" class="filter-tab">Users</a>
+    <a href="/admin/content" class="filter-tab">Content</a>
+    <a href="/admin/coupons" class="filter-tab">Coupons</a>
+    <a href="/admin/alerts" class="filter-tab">Alerts</a>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value"><%= stats.totalUsers %></div>
+    </div>
+    
+    <div class="stat-card" style="border-color: rgba(255, 181, 71, 0.15);">
+      <div class="stat-label" style="color: var(--color-warning);">Pending Orders</div>
+      <div class="stat-value" style="color: var(--color-warning);"><%= stats.pendingOrders %></div>
+    </div>
+
+    <div class="stat-card" style="border-color: rgba(0, 224, 168, 0.15);">
+      <div class="stat-label" style="color: var(--color-success);">Verified Sales</div>
+      <div class="stat-value" style="color: var(--color-success);"><%= stats.verifiedOrders %></div>
+    </div>
+
+    <div class="stat-card" style="border-color: rgba(255, 255, 255, 0.15);">
+      <div class="stat-label" style="color: var(--text-primary);">Total Revenue</div>
+      <div class="stat-value" style="color: var(--text-primary);">₱<%= stats.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) %></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Today's Orders</div>
+      <div class="stat-value"><%= stats.todayOrders %></div>
+    </div>
+  </div>
+
+  <!-- Recent Orders Table -->
+  <div class="glass-card" style="padding: 1.5rem; margin-top: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800;">Recent Order Transactions</h3>
+      <a href="/admin/orders" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 6px 12px;">View All Orders</a>
+    </div>
+
+    <% if (recentOrders.length === 0) { %>
+      <div style="text-align: center; padding: 3rem 0; color: var(--text-muted);">
+        <p>No orders recorded in the system yet.</p>
+      </div>
+    <% } else { %>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Product Details</th>
+              <th>Payment Info</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentOrders.forEach(order => { %>
+              <tr>
+                <td style="white-space: nowrap;">
+                  <%= new Date(order.created_at).toLocaleDateString() %><br>
+                  <small style="color: var(--text-muted);"><%= new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></small>
+                </td>
+                <td>
+                  <strong><%= order.full_name %></strong><br>
+                  <small style="color: var(--text-muted);"><%= order.email %></small>
+                </td>
+                <td>
+                  <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-primary); font-size: 0.7rem;"><%= order.category %></span><br>
+                  <strong><%= order.product_name %></strong>
+                </td>
+                <td>
+                  <strong style="text-transform: uppercase; font-size: 0.8rem;"><%= order.payment_method %></strong><br>
+                  <code style="font-size: 0.75rem;"><%= order.payment_reference.includes('|') ? order.payment_reference.split('|')[1] : order.payment_reference %></code>
+                </td>
+                <td style="font-weight: 700; color: var(--text-primary);">
+                  ₱<%= order.amount.toFixed(2) %>
+                </td>
+                <td>
+                  <span class="badge badge-<%= order.status %>"><%= order.status %></span>
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                  <% if (order.status === 'pending') { %>
+                    <form action="/admin/orders/<%= order.id %>/verify" method="POST" style="display: inline-block;">
+                      <button type="submit" class="btn btn-success btn-sm" style="padding: 4px 10px; font-size: 0.75rem;">Verify</button>
+                    </form>
+                  <% } else { %>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">None Required</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

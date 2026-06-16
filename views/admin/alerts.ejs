@@ -1,0 +1,195 @@
+<%- include('../partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="admin-page">
+  <!-- Header -->
+  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <h1 style="margin: 0;">Security Alerts Log</h1>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <form action="/admin/alerts/clear" method="POST" onsubmit="return confirm('Are you sure you want to permanently clear all security logs?')">
+        <button type="submit" class="btn btn-danger btn-sm" <%= alerts.length === 0 ? 'disabled' : '' %>>Clear All Logs</button>
+      </form>
+      <a href="/admin" class="btn btn-secondary btn-sm">← Back Overview</a>
+    </div>
+  </div>
+
+  <!-- Admin Sub Navigation Tabs -->
+  <div class="filter-tabs" style="margin-bottom: 2rem;">
+    <a href="/admin" class="filter-tab">Overview</a>
+    <a href="/admin/orders" class="filter-tab">Orders</a>
+    <a href="/admin/users" class="filter-tab">Users</a>
+    <a href="/admin/content" class="filter-tab">Content</a>
+    <a href="/admin/coupons" class="filter-tab">Coupons</a>
+    <a href="/admin/alerts" class="filter-tab active">Alerts</a>
+  </div>
+
+  <!-- Search & Stats Bar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 15px;">
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; width: 100%; max-width: 600px;">
+      <input type="text" id="search-logs" placeholder="Search by student, email, or details..." class="form-control" style="flex: 2; min-width: 200px; padding: 8px 12px; font-size: 0.85rem; border-radius: 8px;">
+      <select id="filter-type" class="form-control" style="flex: 1; min-width: 150px; padding: 8px 12px; font-size: 0.85rem; border-radius: 8px; background: var(--bg-glass);">
+        <option value="">All Alert Types</option>
+        <option value="Screenshot">Screenshot</option>
+        <option value="DevTools">DevTools Inspector</option>
+        <option value="Copy">Copy-Paste</option>
+        <option value="Print">Print Triggers</option>
+      </select>
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+      Logged violations: <strong id="logged-violations-count"><%= alerts.length %></strong>
+    </div>
+  </div>
+
+  <!-- Security Alerts Table Card -->
+  <div class="glass-card" style="padding: 1.5rem;">
+    <% if (alerts.length === 0) { %>
+      <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <div style="margin-bottom: 1.5rem;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-success);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <p>No security alerts logged. The platform is completely secure.</p>
+      </div>
+    <% } else { %>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">Date & Time</th>
+              <th style="width: 25%;">Student Details</th>
+              <th style="width: 20%;">Alert Type</th>
+              <th style="width: 25%;">Details</th>
+              <th style="width: 15%; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-tbody">
+            <% alerts.forEach(alert => { %>
+              <tr id="alert-row-<%= alert.id %>" class="alert-row" data-type="<%= alert.event_type %>" style="border-bottom: 1px solid var(--border-color);">
+                <td style="white-space: nowrap; font-size: 0.82rem; color: var(--text-secondary);">
+                  <%= new Date(alert.created_at).toLocaleString() %>
+                </td>
+                <td>
+                  <strong><%= alert.username %></strong><br>
+                  <code style="font-size: 0.8rem; color: var(--color-accent); background: rgba(255,255,255,0.03); padding: 2px 6px; border-radius: 4px;">
+                    <%= alert.user_unique_id || 'ID Unknown' %>
+                  </code><br>
+                  <small style="color: var(--text-muted);"><%= alert.email || '' %></small>
+                </td>
+                <td>
+                  <span class="badge" style="background: <%= alert.event_type.includes('Screenshot') ? 'rgba(224, 120, 120, 0.12)' : (alert.event_type.includes('DevTools') ? 'rgba(224, 200, 120, 0.12)' : 'rgba(255, 255, 255, 0.05)') %>; color: <%= alert.event_type.includes('Screenshot') ? 'var(--color-danger)' : (alert.event_type.includes('DevTools') ? 'var(--color-warning)' : 'var(--text-secondary)') %>; border: 1px solid <%= alert.event_type.includes('Screenshot') ? 'rgba(224, 120, 120, 0.25)' : (alert.event_type.includes('DevTools') ? 'rgba(224, 200, 120, 0.25)' : 'rgba(255,255,255,0.05)') %>; padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 700;">
+                    <%= alert.event_type %>
+                  </span>
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+                  <%= alert.details %>
+                </td>
+                <td style="text-align: right;">
+                  <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                    <% if (alert.user_id) { %>
+                      <form action="/admin/users/<%= alert.user_id %>/toggle" method="POST" onsubmit="return confirm('Toggle account state for user: <%= alert.username %>?')">
+                        <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 4px 8px; border-color: rgba(255,255,255,0.05);">
+                          Manage Account
+                        </button>
+                      </form>
+                    <% } %>
+                    <button class="btn btn-danger btn-sm delete-alert-btn" data-id="<%= alert.id %>" style="font-size: 0.72rem; padding: 6px 10px; border-color: rgba(255,255,255,0.05); display: inline-flex; align-items: center; justify-content: center; height: 32px;" title="Delete log entry">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // AJAX Delete alert
+    const deleteButtons = document.querySelectorAll('.delete-alert-btn');
+    deleteButtons.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const alertId = btn.getAttribute('data-id');
+        if (confirm('Are you sure you want to delete this alert entry?')) {
+          try {
+            const res = await fetch(`/admin/alerts/${alertId}/delete`, {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            const data = await res.json();
+            if (data.success) {
+              const row = document.getElementById(`alert-row-${alertId}`);
+              if (row) {
+                row.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(-8px)';
+                setTimeout(() => {
+                  row.remove();
+                  // Update logged violations count
+                  const countEl = document.getElementById('logged-violations-count');
+                  if (countEl) {
+                    const count = document.querySelectorAll('.alert-row').length;
+                    countEl.textContent = count;
+                    if (count === 0) {
+                      location.reload(); // Reload to show empty state
+                    }
+                  }
+                }, 250);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to delete alert:', err);
+          }
+        }
+      });
+    });
+
+    // Filter and Search
+    const searchInput = document.getElementById('search-logs');
+    const typeFilter = document.getElementById('filter-type');
+    const rows = document.querySelectorAll('.alert-row');
+
+    function filterTable() {
+      const query = searchInput.value.toLowerCase();
+      const selectedType = typeFilter.value.toLowerCase();
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const type = row.getAttribute('data-type').toLowerCase();
+
+        const matchesQuery = text.includes(query);
+        const matchesType = !selectedType || type.includes(selectedType);
+
+        if (matchesQuery && matchesType) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Update count of visible rows
+      const visibleCount = document.querySelectorAll('.alert-row:not([style*="display: none"])').length;
+      const countEl = document.getElementById('logged-violations-count');
+      if (countEl) {
+        countEl.textContent = visibleCount;
+      }
+    }
+
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (typeFilter) typeFilter.addEventListener('change', filterTable);
+  });
+</script>
+
+<%- include('../partials/footer') %>

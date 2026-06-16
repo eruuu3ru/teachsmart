@@ -1,0 +1,217 @@
+<%- include('partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+</div>
+
+<div class="form-page" style="padding-top: 120px;">
+  <div class="form-container form-container-wide">
+    <div class="form-card">
+      <div class="form-header">
+        <h1>Get Your Reviewer</h1>
+        <p>Select your materials, pay via QR, and start studying!</p>
+      </div>
+
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form action="/register" method="POST" id="orderForm">
+        <!-- Step 1: Select Products -->
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-secondary);">
+          Step 1: Select Your Reviewer(s)
+        </h3>
+
+        <div class="product-select" id="productSelect">
+          <% products.forEach(function(product) { %>
+            <% if (product.name.includes('English')) { %>
+              <label class="product-option" data-price="<%= product.price %>" data-id="<%= product.id %>" style="opacity: 0.5; cursor: not-allowed; border-color: rgba(255,255,255,0.03);" title="Currently under maintenance">
+                <input type="checkbox" name="products" value="<%= product.id %>" disabled>
+                <div class="option-info">
+                  <div class="option-name"><%= product.name %> (Out for Maintenance)</div>
+                  <div class="option-category"><%= product.category %></div>
+                </div>
+                <div class="option-price">₱<%= product.price.toFixed(0) %></div>
+              </label>
+            <% } else { %>
+              <label class="product-option" data-price="<%= product.price %>" data-id="<%= product.id %>">
+                <input type="checkbox" name="products" value="<%= product.id %>">
+                <div class="option-info">
+                  <div class="option-name"><%= product.name %></div>
+                  <div class="option-category"><%= product.category %></div>
+                </div>
+                <div class="option-price">₱<%= product.price.toFixed(0) %></div>
+              </label>
+            <% } %>
+          <% }); %>
+        </div>
+
+        <!-- Coupon -->
+        <div class="coupon-section mt-3">
+          <input type="text" name="coupon_code" class="form-control" placeholder="ENTER COUPON CODE">
+          <button type="button" class="btn btn-secondary" onclick="alert('Coupon will be applied on checkout')">Apply</button>
+        </div>
+
+        <!-- Order Total -->
+        <div class="order-total">
+          <span class="total-label">Total</span>
+          <span class="total-amount" id="orderTotal">₱0.00</span>
+        </div>
+
+        <!-- Step 2: Personal Info -->
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; margin-top: 2rem; color: var(--text-secondary);">
+          Step 2: Your Information
+        </h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first_name">First Name <span class="required">*</span></label>
+            <input type="text" id="first_name" name="first_name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="last_name">Last Name <span class="required">*</span></label>
+            <input type="text" id="last_name" name="last_name" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email <span class="required">*</span></label>
+            <input type="email" id="email" name="email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" class="form-control">
+          </div>
+        </div>
+
+        <!-- Step 3: Payment -->
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; margin-top: 2rem; color: var(--text-secondary);">
+          Step 3: Payment Method
+        </h3>
+
+        <div class="payment-methods" id="paymentMethods">
+          <label class="payment-option" data-method="gcash">
+            <input type="radio" name="payment_method" value="gcash" required>
+            <div>
+              <div class="payment-name">GCash</div>
+              <div class="payment-details">Send via GCash QR code</div>
+            </div>
+          </label>
+          <label class="payment-option" data-method="unionbank">
+            <input type="radio" name="payment_method" value="unionbank">
+            <div>
+              <div class="payment-name">UnionBank</div>
+              <div class="payment-details">Transfer via UnionBank QR</div>
+            </div>
+          </label>
+          <label class="payment-option" data-method="maribank">
+            <input type="radio" name="payment_method" value="maribank">
+            <div>
+              <div class="payment-name">MariBank</div>
+              <div class="payment-details">Transfer via MariBank QR</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- QR Code Displays -->
+        <div class="qr-section" id="qr-gcash" style="text-align: center; margin-top: 1.5rem; display: none;">
+          <div class="qr-container" style="display: flex; justify-content: center; margin-bottom: 0.5rem;">
+            <img src="/images/qr-gcash.jpg" alt="GCash QR Code" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="max-width: 260px; border-radius: var(--radius-md); border: 1px solid var(--border-color); padding: 8px; background: white;">
+            <div class="qr-placeholder-fallback" style="display: none; width: 220px; height: 220px; border: 1px dashed var(--border-color); border-radius: var(--radius-md); align-items: center; justify-content: center; flex-direction: column; text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 15px; background: rgba(255,255,255,0.01);">
+              <span>GCash QR Code</span>
+              <small style="color: var(--text-muted); margin-top: 8px;">Upload image to:<br><strong>public/images/qr-gcash.jpg</strong></small>
+            </div>
+          </div>
+          <p class="qr-label">Scan GCash QR to pay</p>
+        </div>
+
+        <div class="qr-section" id="qr-unionbank" style="text-align: center; margin-top: 1.5rem; display: none;">
+          <div class="qr-container" style="display: flex; justify-content: center; margin-bottom: 0.5rem;">
+            <img src="/images/qr-unionbank.jpg" alt="UnionBank QR Code" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="max-width: 260px; border-radius: var(--radius-md); border: 1px solid var(--border-color); padding: 8px; background: white;">
+            <div class="qr-placeholder-fallback" style="display: none; width: 220px; height: 220px; border: 1px dashed var(--border-color); border-radius: var(--radius-md); align-items: center; justify-content: center; flex-direction: column; text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 15px; background: rgba(255,255,255,0.01);">
+              <span>UnionBank QR Code</span>
+              <small style="color: var(--text-muted); margin-top: 8px;">Upload image to:<br><strong>public/images/qr-unionbank.jpg</strong></small>
+            </div>
+          </div>
+          <p class="qr-label">Scan UnionBank QR to pay</p>
+        </div>
+
+        <div class="qr-section" id="qr-maribank" style="text-align: center; margin-top: 1.5rem; display: none;">
+          <div class="qr-container" style="display: flex; justify-content: center; margin-bottom: 0.5rem;">
+            <img src="/images/qr-maribank.jpg" alt="MariBank QR Code" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" style="max-width: 260px; border-radius: var(--radius-md); border: 1px solid var(--border-color); padding: 8px; background: white;">
+            <div class="qr-placeholder-fallback" style="display: none; width: 220px; height: 220px; border: 1px dashed var(--border-color); border-radius: var(--radius-md); align-items: center; justify-content: center; flex-direction: column; text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 15px; background: rgba(255,255,255,0.01);">
+              <span>MariBank QR Code</span>
+              <small style="color: var(--text-muted); margin-top: 8px;">Upload image to:<br><strong>public/images/qr-maribank.jpg</strong></small>
+            </div>
+          </div>
+          <p class="qr-label">Scan MariBank QR to pay</p>
+        </div>
+
+        <!-- Payment Reference -->
+        <div class="form-group mt-3">
+          <label for="payment_reference">Payment Reference Number <span class="required">*</span></label>
+          <input type="text" id="payment_reference" name="payment_reference" class="form-control" required>
+          <small style="color: var(--text-muted); font-size: 0.8rem;">This is the reference number from your payment app after sending</small>
+        </div>
+
+        <button type="submit" class="btn btn-success btn-block btn-lg mt-3">
+          Submit Order
+        </button>
+
+        <p class="text-center mt-2" style="font-size: 0.8rem; color: var(--text-muted);">
+          Already have an account? <a href="/login">Login here</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Product selection logic
+  document.querySelectorAll('.product-option').forEach(option => {
+    const checkbox = option.querySelector('input[type="checkbox"]');
+    checkbox.addEventListener('change', function() {
+      option.classList.toggle('selected', this.checked);
+      updateTotal();
+    });
+  });
+
+  function updateTotal() {
+    let total = 0;
+    document.querySelectorAll('.product-option input:checked').forEach(cb => {
+      total += parseFloat(cb.closest('.product-option').dataset.price);
+    });
+    document.getElementById('orderTotal').textContent = '₱' + total.toFixed(2);
+  }
+
+  // Payment method selection
+  document.querySelectorAll('.payment-option input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+      const option = this.closest('.payment-option');
+      option.classList.add('selected');
+
+      // Show corresponding QR code
+      document.querySelectorAll('.qr-section').forEach(q => q.style.display = 'none');
+      const method = option.dataset.method;
+      const qr = document.getElementById('qr-' + method);
+      if (qr) qr.style.display = 'block';
+    });
+  });
+</script>
+
+<style>
+  .payment-option input {
+    margin-right: 12px;
+  }
+  .qr-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+    animation: fadeInUp 0.4s ease-out;
+  }
+</style>
+
+<%- include('partials/footer') %>

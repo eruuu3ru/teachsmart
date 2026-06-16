@@ -1,0 +1,28 @@
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <p>&copy; <%= new Date().getFullYear() %> TeachSmart Academy. All rights reserved. Secure digital learning platform.</p>
+      <div class="footer-links" style="display: flex; gap: 20px; font-size: 0.8rem; margin-top: 5px;">
+        <a href="/privacy" style="color: var(--text-secondary); transition: var(--transition-fast);">Privacy Policy</a>
+        <span style="color: var(--text-dim);">|</span>
+        <a href="/terms" style="color: var(--text-secondary); transition: var(--transition-fast);">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/security.js"></script>
+  <script>
+    // Mobile nav toggle
+    document.getElementById('navToggle').addEventListener('click', () => {
+      document.getElementById('navLinks').classList.toggle('active');
+    });
+
+    // Close mobile nav on link click
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.getElementById('navLinks').classList.remove('active');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<%- include('partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="form-page" style="padding-top: 130px; padding-bottom: 80px;">
+  <div class="form-container form-container-wide reveal-card revealed" style="max-width: 900px;">
+    <div class="form-card" style="padding: 3.5rem;">
+      <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+        <p style="color: var(--color-highlight); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 8px;">Legal Information</p>
+        <h1 style="font-size: 2.5rem; font-weight: 800; letter-spacing: -1.5px; margin: 0; line-height: 1.1; color: var(--text-primary);">Privacy Policy</h1>
+        <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.95rem;">Last updated: June 2026</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 2rem; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.8;">
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">1. Information We Collect</h2>
+          <p>We collect essential information to process your purchase and secure your access to TeachSmart Academy materials:</p>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: square;">
+            <li><strong>Personal details:</strong> Full name, email address, and phone number provided during checkout.</li>
+            <li><strong>Payment details:</strong> Payment reference numbers and transfer methods (GCash, UnionBank, MariBank) used for verification.</li>
+            <li><strong>Device and Session metadata:</strong> User-agent information, IP addresses, and unique hashes to enforce the 2-device active limit.</li>
+            <li><strong>Security events:</strong> Logged actions such as screenshot, copy, or print attempts to protect our intellectual property.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">2. How We Protect Content and Data</h2>
+          <p>We implement strict administrative and technological safeguards to prevent unauthorized copying and distribution of our study materials:</p>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: square;">
+            <li>All study sheets and PDF materials are embedded with a personalized, dynamic member watermark displaying your full name and unique ID.</li>
+            <li>Access is restricted to active accounts with verified order status.</li>
+            <li>Our secure viewer enforces strict CSS rules and Javascript listeners that block right-clicking, text selection, printing, and automated screenshot capture tools.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">3. Cookies and Storage</h2>
+          <p>We use localized SQLite cookies and web storage (`localStorage`) to remember your session, keep you logged in on your primary devices, and locally track your chapter reading progress so you can resume studying effortlessly.</p>
+        </section>
+
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">4. Contact Us</h2>
+          <p>If you have any questions about this Privacy Policy, your registration status, or require a device limit reset, please contact our support team at <a href="mailto:support@teachsmart.com" style="color: var(--color-success); font-weight: 600;">support@teachsmart.com</a>.</p>
+        </section>
+      </div>
+
+      <div style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <a href="/" class="btn btn-secondary btn-sm">&larr; Back to Home</a>
+        <a href="/terms" class="btn btn-primary btn-sm">Terms of Service &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

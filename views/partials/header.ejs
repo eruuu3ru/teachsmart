@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="TeachSmart Academy — Your secure gateway to premium LET Reviewers and English Tutorials. Study smarter, pass with confidence.">
+  <title><%= typeof title !== 'undefined' ? title : 'TeachSmart Academy' %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>a</text></svg>">
+  <script>
+    // Immediate theme loading in <head> to prevent white/dark flash on page reload
+    (function() {
+      const savedTheme = localStorage.getItem('tsa_theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('light-theme');
+      } else {
+        document.documentElement.classList.remove('light-theme');
+      }
+    })();
+  </script>
+  <script src="/js/background.js" defer></script>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <a href="/" class="nav-brand" title="TeachSmart Academy">
+      <div class="logo-circle">
+        <svg class="brand-logo-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-success);">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M2 12l10 5 10-5" />
+        </svg>
+      </div>
+      <span class="brand-text" data-translate="brand">TeachSmart Academy</span>
+    </a>
+
+    <!-- Navbar Middle Actions (Language Selector & Theme toggle) -->
+    <div class="navbar-actions-group">
+      <!-- Language Selector -->
+      <div class="lang-selector">
+        <button id="langBtn" aria-haspopup="true" aria-expanded="false">
+          <span id="currentLangText">EN</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div id="langDropdown" class="lang-dropdown">
+          <button class="lang-opt" data-lang="en">EN (English)</button>
+          <button class="lang-opt" data-lang="tl">TL (Tagalog)</button>
+
+        </div>
+      </div>
+
+      <!-- Theme Switcher Button -->
+      <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">
+        <!-- Moon Icon (for light mode -> click to activate dark mode) -->
+        <svg id="themeIconMoon" class="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <!-- Sun Icon (for dark mode -> click to activate light mode) -->
+        <svg id="themeIconSun" class="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+    </div>
+
+    <!-- Navigation Toggle (Mobile Drawer) -->
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+
+    <!-- Navigation Links -->
+    <ul class="nav-links" id="navLinks">
+      <% if (typeof user !== 'undefined' && user && user.id) { %>
+        <% if (user.role === 'admin') { %>
+          <li><a href="/admin" class="<%= currentPath === '/admin' ? 'active' : '' %>" data-translate="nav-dashboard">Dashboard</a></li>
+          <li><a href="/admin/orders" class="<%= currentPath === '/admin/orders' ? 'active' : '' %>" data-translate="nav-orders">Orders</a></li>
+          <li><a href="/admin/users" class="<%= currentPath === '/admin/users' ? 'active' : '' %>" data-translate="nav-users">Users</a></li>
+          <li><a href="/admin/content" class="<%= currentPath === '/admin/content' ? 'active' : '' %>" data-translate="nav-content">Content</a></li>
+          <li><a href="/admin/alerts" class="<%= currentPath === '/admin/alerts' ? 'active' : '' %>" data-translate="nav-alerts">Alerts</a></li>
+        <% } else { %>
+          <li><a href="/dashboard" class="<%= currentPath === '/dashboard' ? 'active' : '' %>" data-translate="nav-library">My Library</a></li>
+        <% } %>
+        <li><a href="/logout" class="btn-nav-primary" data-translate="nav-logout">Logout</a></li>
+      <% } else { %>
+        <li><a href="/#products" data-translate="nav-reviewers">Reviewers</a></li>
+        <li><a href="/#features" data-translate="nav-features">Features</a></li>
+        <li><a href="/#how" data-translate="nav-how">How It Works</a></li>
+        <li><a href="/register" class="btn-nav-primary" data-translate="nav-start">Get Started</a></li>
+      <% } %>
+    </ul>
+  </nav>
+
+  <!-- Global Translation Script -->
+  <script>
+    (function() {
+      const translations = {
+        en: {
+          "brand": "TeachSmart Academy",
+          "nav-reviewers": "Reviewers",
+          "nav-features": "Features",
+          "nav-how": "How It Works",
+          "nav-start": "Get Started",
+          "nav-login": "Login",
+          "nav-logout": "Logout",
+          "nav-dashboard": "Dashboard",
+          "nav-orders": "Orders",
+          "nav-users": "Users",
+          "nav-content": "Content",
+          "nav-alerts": "Alerts",
+          "nav-library": "My Library",
+          "hero-title": "Ace Your Board Exam",
+          "hero-title-gradient": "with Confidence.",
+          "hero-desc": "Premium LET Reviewers and English Tutorials — accessible anytime, anywhere. Study at your own pace with secure, high-quality materials designed to help you pass.",
+          "hero-cta": "Browse Reviewers",
+          "hero-login-title": "MEMBER LOGIN",
+          "hero-login-uid": "Unique ID",
+          "hero-login-pass": "Password",
+          "hero-login-remember": "REMEMBER",
+          "hero-login-register": "REGISTER?",
+          "hero-login-btn": "Login"
+        },
+        tl: {
+          "brand": "TeachSmart Academy",
+          "nav-reviewers": "Mga Reviewer",
+          "nav-features": "Mga Tampok",
+          "nav-how": "Paano Gumagana",
+          "nav-start": "Magsimula",
+          "nav-login": "Mag-login",
+          "nav-logout": "Mag-logout",
+          "nav-dashboard": "Dashboard",
+          "nav-orders": "Mga Order",
+          "nav-users": "Mga User",
+          "nav-content": "Nilalaman",
+          "nav-alerts": "Mga Alert",
+          "nav-library": "Aking Aklatan",
+          "hero-title": "Ipasa ang Board Exam",
+          "hero-title-gradient": "nang may Kumpiyansa.",
+          "hero-desc": "Premium LET Reviewers at English Tutorials — magagamit kahit saan, kahit kailan. Mag-aral sa sarili mong bilis gamit ang ligtas at de-kalidad na materyales upang matulungan kang pumasa.",
+          "hero-cta": "Tingnan ang mga Reviewer",
+          "hero-login-title": "LOGIN NG MIYEMBRO",
+          "hero-login-uid": "Natatanging ID",
+          "hero-login-pass": "Password",
+          "hero-login-remember": "TANDAAN",
+          "hero-login-register": "MAGPAREHISTRO?",
+          "hero-login-btn": "Mag-login"
+        }
+      };
+
+      window.applyTranslations = function(lang) {
+        const dict = translations[lang] || translations.en;
+        document.querySelectorAll('[data-translate]').forEach(el => {
+          const key = el.getAttribute('data-translate');
+          if (dict[key]) {
+            el.innerHTML = dict[key];
+          }
+        });
+
+        // Translate placeholders
+        const uidInput = document.getElementById('hero_unique_id');
+        if (uidInput) {
+          uidInput.placeholder = lang === 'tl' ? 'ILAGAY ANG NATATANGING ID' : 'ENTER UNIQUE ID';
+        }
+        const passInput = document.getElementById('hero_password');
+        if (passInput) {
+          passInput.placeholder = lang === 'tl' ? 'ILAGAY ANG PASSWORD' : 'ENTER PASSWORD';
+        }
+      };
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // --- Language Select Logic ---
+        const currentLang = localStorage.getItem('tsa_lang') || 'en';
+        document.getElementById('currentLangText').innerText = currentLang.toUpperCase();
+        window.applyTranslations(currentLang);
+
+        const langBtn = document.getElementById('langBtn');
+        const langDropdown = document.getElementById('langDropdown');
+
+        if (langBtn && langDropdown) {
+          langBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isExp = langDropdown.style.display === 'block';
+            langDropdown.style.display = isExp ? 'none' : 'block';
+            langBtn.setAttribute('aria-expanded', !isExp);
+          });
+
+          document.querySelectorAll('.lang-opt').forEach(opt => {
+            opt.addEventListener('click', function(e) {
+              e.stopPropagation();
+              const lang = this.getAttribute('data-lang');
+              localStorage.setItem('tsa_lang', lang);
+              document.getElementById('currentLangText').innerText = lang.toUpperCase();
+              window.applyTranslations(lang);
+              langDropdown.style.display = 'none';
+              langBtn.setAttribute('aria-expanded', 'false');
+            });
+          });
+
+          document.addEventListener('click', () => {
+            langDropdown.style.display = 'none';
+            langBtn.setAttribute('aria-expanded', 'false');
+          });
+        }
+
+        // --- Theme Switch Logic ---
+        const themeBtn = document.getElementById('themeToggle');
+        const moonIcon = document.getElementById('themeIconMoon');
+        const sunIcon = document.getElementById('themeIconSun');
+
+        if (themeBtn && moonIcon && sunIcon) {
+          function updateThemeUI(theme) {
+            if (theme === 'light') {
+              document.documentElement.classList.add('light-theme');
+              moonIcon.style.display = 'block';
+              sunIcon.style.display = 'none';
+            } else {
+              document.documentElement.classList.remove('light-theme');
+              moonIcon.style.display = 'none';
+              sunIcon.style.display = 'block';
+            }
+          }
+
+          const initialTheme = localStorage.getItem('tsa_theme') || 'dark';
+          updateThemeUI(initialTheme);
+
+          themeBtn.addEventListener('click', () => {
+            document.documentElement.classList.add('theme-toggling');
+            const currentTheme = localStorage.getItem('tsa_theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('tsa_theme', newTheme);
+            updateThemeUI(newTheme);
+            setTimeout(() => {
+              document.documentElement.classList.remove('theme-toggling');
+            }, 500);
+          });
+        }
+      });
+    })();
+  </script>

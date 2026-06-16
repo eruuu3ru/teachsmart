@@ -1,0 +1,121 @@
+<%- include('../partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="admin-page">
+  <!-- Header -->
+  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <h1 style="margin: 0;">Manage Users</h1>
+    </div>
+    <div>
+      <a href="/admin" class="btn btn-secondary btn-sm">← Back to Overview</a>
+    </div>
+  </div>
+
+  <!-- Admin Sub Navigation Tabs -->
+  <div class="filter-tabs" style="margin-bottom: 2rem;">
+    <a href="/admin" class="filter-tab">Overview</a>
+    <a href="/admin/orders" class="filter-tab">Orders</a>
+    <a href="/admin/users" class="filter-tab active">Users</a>
+    <a href="/admin/content" class="filter-tab">Content</a>
+    <a href="/admin/coupons" class="filter-tab">Coupons</a>
+    <a href="/admin/alerts" class="filter-tab">Alerts</a>
+  </div>
+
+  <!-- Search & Stats Bar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 15px;">
+    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+      Total registered students: <strong><%= users.length %></strong>
+    </div>
+  </div>
+
+  <!-- Users Table Card -->
+  <div class="glass-card" style="padding: 1.5rem;">
+    <% if (users.length === 0) { %>
+      <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <div style="margin-bottom: 1.5rem;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <p>No registered users found in the system yet.</p>
+      </div>
+    <% } else { %>
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Joined Date</th>
+              <th>Student Credentials</th>
+              <th>Email / Contact</th>
+              <th>Purchased Books</th>
+              <th>Active Devices</th>
+              <th>Status</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach(student => { %>
+              <tr>
+                <td style="white-space: nowrap;">
+                  <%= new Date(student.created_at).toLocaleDateString() %>
+                </td>
+                <td>
+                  <strong><%= student.full_name %></strong><br>
+                  <code style="font-size: 0.8rem; color: var(--color-accent); background: rgba(255,255,255,0.03); padding: 2px 6px; border-radius: 4px;">
+                    <%= student.unique_id %>
+                  </code>
+                </td>
+                <td>
+                  <%= student.email %><br>
+                  <small style="color: var(--text-muted);"><%= student.phone || 'No phone' %></small>
+                </td>
+                <td style="font-weight: 700; text-align: center;">
+                  <%= student.purchased_count %>
+                </td>
+                <td>
+                  <span class="badge <%= student.active_devices > 0 ? 'badge-pending' : 'badge-verified' %>" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem;">
+                    Active: <%= student.active_devices %>
+                  </span>
+                </td>
+                <td>
+                  <span class="badge badge-<%= student.is_active ? 'active' : 'inactive' %>">
+                    <%= student.is_active ? 'Active' : 'Disabled' %>
+                  </span>
+                </td>
+                <td style="text-align: right;">
+                  <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                    <!-- Device Reset -->
+                    <form action="/admin/users/<%= student.id %>/reset-devices" method="POST" onsubmit="return confirm('Clear all device logins for user <%= student.full_name %>?')">
+                      <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; border-color: rgba(255, 255, 255, 0.05);" <%= student.active_devices === 0 ? 'disabled' : '' %>>
+                        Reset Devices
+                      </button>
+                    </form>
+                    
+                    <!-- Toggle Status -->
+                    <form action="/admin/users/<%= student.id %>/toggle" method="POST">
+                      <button type="submit" class="btn btn-sm <%= student.is_active ? 'btn-danger' : 'btn-success' %>" style="font-size: 0.75rem; padding: 4px 8px; min-width: 70px;">
+                        <%= student.is_active ? 'Disable' : 'Enable' %>
+                      </button>
+                    </form>
+
+                    <!-- Delete Account -->
+                    <form action="/admin/users/<%= student.id %>/delete" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete user <%= student.full_name %>? This will delete all their orders, sessions, and logs. This action cannot be undone.')">
+                      <button type="submit" class="btn btn-danger btn-sm" style="font-size: 0.75rem; padding: 4px 8px;">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

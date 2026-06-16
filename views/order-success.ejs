@@ -1,0 +1,74 @@
+<%- include('partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="form-page" style="padding-top: 120px;">
+  <div class="form-container form-container-wide">
+    <div class="form-card" style="text-align: center;">
+      <!-- Success Icon -->
+      <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(138, 224, 138, 0.08); border: 2px solid var(--color-success); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+
+      <div class="form-header" style="margin-bottom: 2.5rem;">
+        <h1 style="font-size: 2rem; font-weight: 800;">Order Successfully Submitted!</h1>
+        <p style="margin-top: 8px;">Order Reference: <code style="background: var(--bg-surface); padding: 4px 8px; border-radius: 4px; font-weight: bold; color: var(--text-primary);"><%= orderRef %></code></p>
+      </div>
+
+      <div class="alert alert-info" style="text-align: left; line-height: 1.5; margin-bottom: 2rem;">
+        <div>
+          <strong>Payment Verification Pending:</strong> We've received your details. Our team is verifying your payment screenshot/reference. Once verified, your unique login credentials and password will be sent automatically to <strong style="color: white;"><%= email %></strong>.
+        </div>
+      </div>
+
+      <!-- Order Details Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; text-align: left; margin-bottom: 2.5rem; flex-wrap: wrap;" class="grid-responsive">
+        
+        <!-- Customer Info -->
+        <div class="glass-card" style="padding: 1.5rem; border-color: rgba(255,255,255,0.05); background: rgba(255,255,255,0.01);">
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Customer Details</h3>
+          <p style="margin-bottom: 8px;"><strong style="color: var(--text-secondary);">Name:</strong> <%= fullName %></p>
+          <p style="margin-bottom: 8px;"><strong style="color: var(--text-secondary);">Email:</strong> <%= email %></p>
+          <p style="margin-bottom: 8px;"><strong style="color: var(--text-secondary);">Payment Method:</strong> <span style="text-transform: uppercase; font-weight: 600;"><%= paymentMethod %></span></p>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="glass-card" style="padding: 1.5rem; border-color: rgba(255,255,255,0.05); background: rgba(255,255,255,0.01);">
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Items Purchased</h3>
+          <ul style="list-style: none; margin-bottom: 1rem;">
+            <% products.forEach(function(item) { %>
+              <li style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95rem;">
+                <span style="color: var(--text-primary);"><%= item.name %></span>
+                <span style="color: var(--text-secondary);">₱<%= item.price.toFixed(2) %></span>
+              </li>
+            <% }) %>
+          </ul>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 8px; font-weight: bold;">
+            <span style="color: var(--text-secondary);">Total Paid:</span>
+            <span style="color: var(--color-success); font-size: 1.15rem;">₱<%= total.toFixed(2) %></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+        <a href="/" class="btn btn-secondary">Return Home</a>
+        <a href="/login" class="btn btn-primary">Go to Login</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
+
+<style>
+  @media (max-width: 600px) {
+    .grid-responsive {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>

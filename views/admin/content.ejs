@@ -1,0 +1,201 @@
+<%- include('../partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="admin-page">
+  <!-- Header -->
+  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 20px;">
+    <div>
+      <h1 style="margin: 0;">Manage Content</h1>
+    </div>
+    <div>
+      <a href="/admin" class="btn btn-secondary btn-sm">← Back to Overview</a>
+    </div>
+  </div>
+
+  <!-- Admin Sub Navigation Tabs -->
+  <div class="filter-tabs" style="margin-bottom: 2rem;">
+    <a href="/admin" class="filter-tab">Overview</a>
+    <a href="/admin/orders" class="filter-tab">Orders</a>
+    <a href="/admin/users" class="filter-tab">Users</a>
+    <a href="/admin/content" class="filter-tab active">Content</a>
+    <a href="/admin/coupons" class="filter-tab">Coupons</a>
+    <a href="/admin/alerts" class="filter-tab">Alerts</a>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;" class="content-layout">
+    
+    <!-- Left Column: Products List -->
+    <div>
+      <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); margin-bottom: 1rem;">Select Reviewer</h3>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <% products.forEach(product => { %>
+          <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid <%= product.cover_color || 'var(--color-primary)' %>; <%= (selectedProduct && selectedProduct.id === product.id) ? 'border-color: var(--color-primary); background: var(--bg-glass-hover);' : '' %>">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; color: var(--text-primary); text-transform: uppercase;">
+                <%= product.name.split(' ').map(w => w[0]).join('') %>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 1rem;"><%= product.name %></h4>
+                <small style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem;"><%= product.category %></small>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+              <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                <strong><%= product.pageCount %></strong> pages
+              </span>
+              <a href="/admin/content?product=<%= product.id %>" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.75rem;">
+                <%= (selectedProduct && selectedProduct.id === product.id) ? 'Managing...' : 'Manage' %>
+              </a>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Right Column: Content Pages Manager -->
+    <div>
+      <% if (!selectedProduct) { %>
+        <div class="glass-card" style="text-align: center; padding: 6rem 2rem; border-style: dashed; border-color: var(--border-glass-hover);">
+          <div style="margin-bottom: 1.5rem;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem;">No Reviewer Selected</h2>
+          <p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
+            Select one of the educational materials from the sidebar menu to view its chapters, edit pages, or add new content.
+          </p>
+        </div>
+      <% } else { %>
+        <!-- Selected Product Info -->
+        <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2rem; border-color: rgba(255,255,255,0.05); background: rgba(255,255,255,0.01);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 800; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; color: var(--text-primary); text-transform: uppercase;">
+              <%= selectedProduct.name.split(' ').map(w => w[0]).join('') %>
+            </div>
+            <div>
+              <h2 style="font-size: 1.35rem; margin: 0;"><%= selectedProduct.name %></h2>
+              <small style="color: var(--text-muted); text-transform: uppercase;"><%= selectedProduct.category %></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW Feature: PDF Document Upload -->
+        <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2rem;">
+          <h3 style="margin-top: 0; font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem;">
+            Upload PDF Reviewer File
+          </h3>
+          
+          <% if (hasPdf) { %>
+            <div style="background: rgba(0, 224, 168, 0.05); border: 1px solid rgba(0, 224, 168, 0.2); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; flex-wrap: wrap; gap: 10px;">
+              <span style="color: var(--color-success); font-weight: 500;">✓ Secure PDF Reviewer File uploaded</span>
+              <form action="/admin/content/<%= selectedProduct.id %>/delete-pdf" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete the PDF reviewer file?')">
+                <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 0.75rem;">Delete PDF</button>
+              </form>
+            </div>
+          <% } else { %>
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+              No PDF file uploaded for this reviewer. Currently falling back to database text chapters below.
+            </div>
+          <% } %>
+
+          <form action="/admin/content/<%= selectedProduct.id %>/upload-pdf" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+              <label for="pdf">Select PDF Document <span class="required">*</span></label>
+              <input type="file" id="pdf" name="pdf" class="form-control" accept=".pdf" required style="padding: 10px; border-style: dashed; background: transparent;">
+              <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 6px;">* Uploading a PDF will override the text-based pages below in the reader view.</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+              Upload PDF File
+            </button>
+          </form>
+        </div>
+
+        <!-- Add Page Form Accordion -->
+        <div class="glass-card" style="padding: 1.5rem; margin-bottom: 2rem;">
+          <h3 style="margin-top: 0; font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem;">
+            Add New Text Page/Chapter
+          </h3>
+          
+          <form action="/admin/content/<%= selectedProduct.id %>/add-page" method="POST">
+            <div class="form-group">
+              <label for="title">Chapter / Page Title <span class="required">*</span></label>
+              <input type="text" id="title" name="title" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="content">Page Content (Text/Markdown) <span class="required">*</span></label>
+              <textarea id="content" name="content" class="form-control" required style="min-height: 250px; font-family: monospace; font-size: 0.9rem; line-height: 1.5;"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Save Content Page
+            </button>
+          </form>
+        </div>
+
+        <!-- Current Pages List -->
+        <div class="glass-card" style="padding: 1.5rem;">
+          <h3 style="margin-top: 0; font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem;">
+            Current Content Pages (<%= selectedPages.length %>)
+          </h3>
+
+          <% if (selectedPages.length === 0) { %>
+            <p style="color: var(--text-muted); text-align: center; padding: 2rem 0;">No text pages have been added to this material yet. Use the form above to create the first page.</p>
+          <% } else { %>
+            <div class="data-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">Page #</th>
+                    <th>Chapter / Section Title</th>
+                    <th>Content Preview</th>
+                    <th style="text-align: right; width: 100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% selectedPages.forEach(page => { %>
+                    <tr>
+                      <td style="font-weight: bold; text-align: center; color: var(--color-highlight);">
+                        <%= page.page_number %>
+                      </td>
+                      <td>
+                        <strong><%= page.title %></strong>
+                      </td>
+                      <td>
+                        <span style="color: var(--text-secondary); font-size: 0.8rem; display: block; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          <%= page.content %>
+                        </span>
+                      </td>
+                      <td style="text-align: right;">
+                        <form action="/admin/content/page/<%= page.id %>/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete page <%= page.page_number %>: <%= page.title %>?')">
+                          <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 0.75rem;">Delete</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+<style>
+  @media (max-width: 900px) {
+    .content-layout {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>

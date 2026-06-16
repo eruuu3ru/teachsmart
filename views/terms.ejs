@@ -1,0 +1,56 @@
+<%- include('partials/header') %>
+
+<div class="bg-animated">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<div class="form-page" style="padding-top: 130px; padding-bottom: 80px;">
+  <div class="form-container form-container-wide reveal-card revealed" style="max-width: 900px;">
+    <div class="form-card" style="padding: 3.5rem;">
+      <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+        <p style="color: var(--color-highlight); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 8px;">Legal Information</p>
+        <h1 style="font-size: 2.5rem; font-weight: 800; letter-spacing: -1.5px; margin: 0; line-height: 1.1; color: var(--text-primary);">Terms of Service</h1>
+        <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.95rem;">Last updated: June 2026</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 2rem; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.8;">
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">1. Acceptance of Terms</h2>
+          <p>By purchasing, registering, or logging into TeachSmart Academy, you agree to comply with and be bound by these Terms of Service. If you do not agree to these terms, you are prohibited from accessing our study materials.</p>
+        </section>
+
+        <section style="background: rgba(224, 120, 120, 0.03); border: 1px solid rgba(224, 120, 120, 0.1); border-radius: var(--radius-md); padding: 1.5rem;">
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: #E07878; margin-bottom: 0.75rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            2. Strict Copyright and Anti-Piracy Policy
+          </h2>
+          <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">All materials on TeachSmart Academy are strictly protected by copyright laws.</p>
+          <ul style="margin-left: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: square; color: var(--text-secondary);">
+            <li><strong>No Screenshotting or Recording:</strong> You are strictly prohibited from taking screenshots, screen captures, or screen recordings of any pages, text, or PDF contents.</li>
+            <li><strong>No Sharing or Distribution:</strong> Sharing your account credentials, copying text content, printing materials, or distributing downloaded reviewer files is illegal.</li>
+            <li><strong>Automated Detection:</strong> Our security system automatically detects and logs screenshot keybinds, DevTools access, context menu triggers, and browser focus loss. These events are immediately forwarded to the administration.</li>
+            <li><strong>Account Termination:</strong> Any detected violation of these rules will result in the immediate lock and termination of your account, permanent revocation of access without refund, and potential legal action under copyright infringement legislation.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">3. Device Limitations</h2>
+          <p>To prevent credential sharing, each purchase account is restricted to a maximum of **two (2) active devices** at any given time. If you exceed this limit, you will be locked out and must log out from one of your other active sessions, or contact administration to request a device session reset.</p>
+        </section>
+
+        <section>
+          <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem; letter-spacing: -0.5px;">4. Access Permissions</h2>
+          <p>Access to reviewer subjects (e.g. General Education, Professional Education, English Tutorial) is granted strictly on a per-purchase basis. Unlocked access is tied to the unique ID generated for you. Attempting to exploit server routes or access products you have not purchased violates our terms and will trigger automated account locks.</p>
+        </section>
+      </div>
+
+      <div style="margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <a href="/privacy" class="btn btn-secondary btn-sm">&larr; Privacy Policy</a>
+        <a href="/" class="btn btn-primary btn-sm">Back to Home &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
