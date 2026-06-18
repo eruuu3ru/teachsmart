@@ -28,6 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/Reviewer', express.static(path.join(__dirname, 'Reviewer')));
 
 // Ensure data directory exists
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
