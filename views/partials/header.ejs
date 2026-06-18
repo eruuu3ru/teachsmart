@@ -6,6 +6,23 @@
   <meta name="description" content="TeachSmart Academy — Your secure gateway to premium LET Reviewers and English Tutorials. Study smarter, pass with confidence.">
   <title><%= typeof title !== 'undefined' ? title : 'TeachSmart Academy' %></title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Ensure navbar remains sticky and visible above all scrolled content */
+    .navbar {
+      position: fixed !important;
+      top: 8px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 99999 !important;
+      background: rgba(10, 10, 12, 0.82) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      transition: background-color 0.3s ease, border-color 0.3s ease !important;
+    }
+    .light-theme .navbar {
+      background: rgba(255, 255, 255, 0.82) !important;
+    }
+  </style>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>a</text></svg>">
   <script>
     // Immediate theme loading in <head> to prevent white/dark flash on page reload

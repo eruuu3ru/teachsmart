@@ -1,6 +1,4 @@
-const express = require('express');
-const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
+const cookieSession = require('cookie-session');
 const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
@@ -9,15 +7,14 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Initialize Database
-const { getDb } = require('./database/init');
-try {
-  getDb();
-  console.log('✓ Database initialized successfully.');
-} catch (err) {
+const { initDb } = require('./database/db');
+initDb().then(() => {
+  console.log('✓ Firebase Database initialized and seeded successfully.');
+}).catch(err => {
   console.error('✗ Failed to initialize database:', err);
-  process.exit(1);
-}
+});
 
+const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -36,20 +33,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// Configure session with connect-sqlite3 store
-app.use(session({
-  store: new SQLiteStore({
-    db: 'sessions.db',
-    dir: DATA_DIR
-  }),
-  secret: process.env.SESSION_SECRET || 'ame-secret-change-this-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    secure: false, // Set to true if running over HTTPS
-    sameSite: 'lax'
-  }
+// Configure cookie-based session (serverless compatible)
+app.use(cookieSession({
+  name: 'session',
+  keys: [process.env.SESSION_SECRET || 'reviewvault-secret-change-this-in-production'],
+  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
 }));
 
 // Apply locals middleware
@@ -58,13 +46,21 @@ app.use(setLocals);
 
 // Routes
 // Homepage / Landing
-app.get('/', (req, res) => {
-  const db = getDb();
-  const products = db.prepare('SELECT * FROM products WHERE is_active = 1').all();
-  res.render('landing', {
-    title: 'TeachSmart Academy — Secure Digital Learning Platform',
-    products
-  });
+app.get('/', async (req, res) => {
+  const { db } = require('./database/db');
+  try {
+    const products = await db.products.listActive();
+    res.render('landing', {
+      title: 'TeachSmart Academy — Secure Digital Learning Platform',
+      products
+    });
+  } catch (err) {
+    console.error('Landing page error:', err);
+    res.render('landing', {
+      title: 'TeachSmart Academy — Secure Digital Learning Platform',
+      products: []
+    });
+  }
 });
 
 app.get('/privacy', (req, res) => {

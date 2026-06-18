@@ -4,7 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const router = express.Router();
-const { getDb } = require('../database/init');
+const { db } = require('../database/db');
 const { requireAdmin } = require('../middleware/auth');
 const { generateUniqueId, generatePassword } = require('../utils/idGenerator');
 
@@ -35,274 +35,331 @@ const uploadPdf = multer({
 });
 
 // Admin Dashboard
-router.get('/', requireAdmin, (req, res) => {
-  const db = getDb();
+router.get('/', requireAdmin, async (req, res) => {
+  try {
+    const allUsers = await db.users.list();
+    const allOrders = await db.orders.listAll();
+    const allProducts = await db.products.listAll();
 
-  const stats = {
-    totalUsers: db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'user'").get().count,
-    pendingOrders: db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'pending'").get().count,
-    verifiedOrders: db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'verified'").get().count,
-    totalRevenue: db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM orders WHERE status = 'verified'").get().total,
-    todayOrders: db.prepare("SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = DATE('now')").get().count,
-  };
+    const usersCount = allUsers.filter(u => u.role === 'user').length;
+    const pendingCount = allOrders.filter(o => o.status === 'pending').length;
+    const verifiedCount = allOrders.filter(o => o.status === 'verified').length;
+    const totalRevenue = allOrders.filter(o => o.status === 'verified').reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
 
-  const recentOrders = db.prepare(`
-    SELECT o.*, u.full_name, u.email, p.name as product_name, p.category
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN products p ON o.product_id = p.id
-    ORDER BY o.created_at DESC
-    LIMIT 10
-  `).all();
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const todayCount = allOrders.filter(o => o.created_at && o.created_at.substring(0, 10) === todayStr).length;
 
-  res.render('admin/dashboard', {
-    title: 'Admin Dashboard — TeachSmart Academy',
-    stats,
-    recentOrders,
-    user: req.session
-  });
+    const stats = {
+      totalUsers: usersCount,
+      pendingOrders: pendingCount,
+      verifiedOrders: verifiedCount,
+      totalRevenue,
+      todayOrders: todayCount,
+    };
+
+    const recentOrders = allOrders.slice(0, 10).map(o => {
+      const user = allUsers.find(u => String(u.id) === String(o.user_id));
+      const product = allProducts.find(p => Number(p.id) === Number(o.product_id));
+      return {
+        ...o,
+        full_name: user ? user.full_name : 'Deleted User',
+        email: user ? user.email : 'N/A',
+        product_name: product ? product.name : 'Unknown Product',
+        category: product ? product.category : 'N/A'
+      };
+    });
+
+    res.render('admin/dashboard', {
+      title: 'Admin Dashboard — TeachSmart Academy',
+      stats,
+      recentOrders,
+      user: req.session
+    });
+  } catch (err) {
+    console.error('Admin dashboard stats error:', err);
+    res.status(500).render('error', {
+      title: 'Admin Error',
+      message: 'Failed to retrieve admin dashboard stats.',
+      user: req.session
+    });
+  }
 });
 
 // Orders Management
-router.get('/orders', requireAdmin, (req, res) => {
-  const db = getDb();
+router.get('/orders', requireAdmin, async (req, res) => {
   const filter = req.query.filter || 'all';
 
-  // Fetch all orders (we filter after grouping to keep transactions whole)
-  const query = `
-    SELECT o.*, u.full_name, u.email, u.unique_id as user_unique_id, u.phone, u.plain_password,
-           p.name as product_name, p.category, p.price
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN products p ON o.product_id = p.id
-    ORDER BY o.created_at DESC
-  `;
+  try {
+    const allOrders = await db.orders.listAll();
+    const allUsers = await db.users.list();
+    const allProducts = await db.products.listAll();
 
-  const orders = db.prepare(query).all();
-
-  // Group by transaction reference
-  const transactions = [];
-  const txnMap = {};
-
-  orders.forEach(order => {
-    let txnId = order.payment_reference;
-    let paymentRef = order.payment_reference;
-    if (order.payment_reference && order.payment_reference.includes('|')) {
-      const parts = order.payment_reference.split('|');
-      txnId = parts[0];
-      paymentRef = parts[1];
-    }
-
-    if (!txnMap[txnId]) {
-      txnMap[txnId] = {
-        txnId: txnId,
-        paymentRef: paymentRef,
-        userId: order.user_id,
-        fullName: order.full_name,
-        email: order.email,
-        phone: order.phone,
-        uniqueId: order.user_unique_id,
-        plainPassword: order.plain_password,
-        paymentMethod: order.payment_method,
-        createdAt: order.created_at,
-        status: 'pending',
-        items: [],
-        total: 0
+    const orders = allOrders.map(o => {
+      const user = allUsers.find(u => String(u.id) === String(o.user_id));
+      const product = allProducts.find(p => Number(p.id) === Number(o.product_id));
+      return {
+        ...o,
+        full_name: user ? user.full_name : 'Deleted User',
+        email: user ? user.email : 'N/A',
+        user_unique_id: user ? user.unique_id : 'N/A',
+        phone: user ? user.phone : 'N/A',
+        plain_password: user ? user.plain_password : '',
+        product_name: product ? product.name : 'Unknown Product',
+        category: product ? product.category : 'N/A',
+        price: product ? product.price : 0
       };
-      transactions.push(txnMap[txnId]);
-    }
-
-    txnMap[txnId].items.push({
-      id: order.id,
-      productName: order.product_name,
-      category: order.category,
-      price: order.price,
-      status: order.status
     });
 
-    txnMap[txnId].total += order.price;
-  });
+    // Group by transaction reference
+    const transactions = [];
+    const txnMap = {};
 
-  // Determine aggregate status
-  transactions.forEach(txn => {
-    const statuses = txn.items.map(i => i.status);
-    if (statuses.includes('pending')) {
-      txn.status = 'pending';
-    } else if (statuses.every(s => s === 'verified')) {
-      txn.status = 'verified';
-    } else if (statuses.every(s => s === 'rejected')) {
-      txn.status = 'rejected';
-    } else {
-      txn.status = 'mixed';
+    orders.forEach(order => {
+      let txnId = order.payment_reference;
+      let paymentRef = order.payment_reference;
+      if (order.payment_reference && order.payment_reference.includes('|')) {
+        const parts = order.payment_reference.split('|');
+        txnId = parts[0];
+        paymentRef = parts[1];
+      }
+
+      if (!txnMap[txnId]) {
+        txnMap[txnId] = {
+          txnId: txnId,
+          paymentRef: paymentRef,
+          userId: order.user_id,
+          fullName: order.full_name,
+          email: order.email,
+          phone: order.phone,
+          uniqueId: order.user_unique_id,
+          plainPassword: order.plain_password,
+          paymentMethod: order.payment_method,
+          createdAt: order.created_at,
+          status: 'pending',
+          items: [],
+          total: 0
+        };
+        transactions.push(txnMap[txnId]);
+      }
+
+      txnMap[txnId].items.push({
+        id: order.id,
+        productName: order.product_name,
+        category: order.category,
+        price: order.price,
+        status: order.status
+      });
+
+      txnMap[txnId].total += order.price;
+    });
+
+    // Determine aggregate status
+    transactions.forEach(txn => {
+      const statuses = txn.items.map(i => i.status);
+      if (statuses.includes('pending')) {
+        txn.status = 'pending';
+      } else if (statuses.every(s => s === 'verified')) {
+        txn.status = 'verified';
+      } else if (statuses.every(s => s === 'rejected')) {
+        txn.status = 'rejected';
+      } else {
+        txn.status = 'mixed';
+      }
+    });
+
+    // Filter based on query
+    let filteredTxns = transactions;
+    if (filter !== 'all') {
+      filteredTxns = transactions.filter(t => t.status === filter);
     }
-  });
 
-  // Filter based on query
-  let filteredTxns = transactions;
-  if (filter !== 'all') {
-    filteredTxns = transactions.filter(t => t.status === filter);
+    res.render('admin/orders', {
+      title: 'Manage Orders — TeachSmart Academy',
+      transactions: filteredTxns,
+      filter,
+      user: req.session
+    });
+  } catch (err) {
+    console.error('Failed to load orders:', err);
+    res.status(500).render('error', {
+      title: 'Orders Load Error',
+      message: 'An error occurred loading the orders.',
+      user: req.session
+    });
   }
-
-  res.render('admin/orders', {
-    title: 'Manage Orders — TeachSmart Academy',
-    transactions: filteredTxns,
-    filter,
-    user: req.session
-  });
 });
 
 // Verify Transaction / Batch Orders
 router.post('/orders/transaction/:txnId/verify', requireAdmin, async (req, res) => {
-  const db = getDb();
   const txnId = req.params.txnId;
 
-  // Find all orders belonging to this transaction reference
-  const orders = db.prepare(`
-    SELECT o.*, u.email, u.full_name, u.unique_id, u.id as uid, p.name as product_name, p.category
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN products p ON o.product_id = p.id
-    WHERE o.payment_reference = ? OR o.payment_reference LIKE ?
-  `).all(txnId, txnId + '|%');
-
-  if (orders.length === 0) {
-    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    return res.redirect('/admin/orders');
-  }
-
-  const userId = orders[0].uid;
-
-  // Generate single new password for the user
-  const newPassword = generatePassword();
-  const passwordHash = bcrypt.hashSync(newPassword, 10);
-
   try {
-    const updateStmt = db.prepare(
-      'UPDATE orders SET status = ?, verified_by = ?, verified_at = CURRENT_TIMESTAMP WHERE id = ?'
-    );
-    for (const o of orders) {
-      updateStmt.run('verified', req.session.userId, o.id);
+    const matchingOrders = await db.orders.listByPaymentReference(txnId);
+    if (matchingOrders.length === 0) {
+      if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+        return res.status(404).json({ success: false, error: 'Transaction not found' });
+      }
+      return res.redirect('/admin/orders');
     }
-    db.prepare('UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?').run(passwordHash, newPassword, userId);
+
+    const allUsers = await db.users.list();
+    const allProducts = await db.products.listAll();
+
+    const orders = matchingOrders.map(o => {
+      const user = allUsers.find(u => String(u.id) === String(o.user_id));
+      const product = allProducts.find(p => Number(p.id) === Number(o.product_id));
+      return {
+        ...o,
+        email: user ? user.email : '',
+        full_name: user ? user.full_name : '',
+        unique_id: user ? user.unique_id : '',
+        uid: user ? user.id : '',
+        product_name: product ? product.name : '',
+        category: product ? product.category : ''
+      };
+    });
+
+    const userId = orders[0].uid;
+    const newPassword = generatePassword();
+    const passwordHash = bcrypt.hashSync(newPassword, 10);
+
+    for (const o of orders) {
+      await db.orders.update(o.id, {
+        status: 'verified',
+        verified_by: req.session.userId,
+        verified_at: 'CURRENT_TIMESTAMP'
+      });
+    }
+    await db.users.update(userId, {
+      password_hash: passwordHash,
+      plain_password: newPassword
+    });
+
+    // Fetch all verified products for this user
+    const allUserOrders = await db.orders.listByUserId(userId);
+    const verifiedUserOrders = allUserOrders.filter(o => o.status === 'verified');
+    const verifiedDetails = verifiedUserOrders.map(o => {
+      const product = allProducts.find(p => Number(p.id) === Number(o.product_id));
+      return {
+        category: product ? product.category : 'General',
+        name: product ? product.name : 'Reviewer'
+      };
+    });
+
+    // Send credentials email
+    try {
+      const { sendCredentials } = require('../utils/email');
+      await sendCredentials(
+        orders[0].email,
+        orders[0].full_name,
+        orders[0].unique_id,
+        newPassword,
+        verifiedDetails
+      );
+    } catch (e) {
+      console.error('Email sending failed:', e);
+    }
+
+    // Flash credentials for admin
+    const creds = {
+      uniqueId: orders[0].unique_id,
+      password: newPassword,
+      email: orders[0].email,
+      fullName: orders[0].full_name
+    };
+    req.session.flashCredentials = creds;
+
+    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+      return res.json({
+        success: true,
+        status: 'verified',
+        credentials: creds
+      });
+    }
+
+    res.redirect('/admin/orders?verified=true');
   } catch (err) {
     console.error('Database update failed:', err);
     if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
       return res.status(500).json({ success: false, error: 'Failed to verify transaction' });
     }
-    return res.redirect('/admin/orders');
+    res.redirect('/admin/orders');
   }
-
-  // Fetch all verified products for this user (to include in welcome email)
-  const allUserOrders = db.prepare(`
-    SELECT o.*, p.name as product_name, p.category
-    FROM orders o
-    JOIN products p ON o.product_id = p.id
-    WHERE o.user_id = ? AND o.status = 'verified'
-  `).all(userId);
-
-  // Send credentials email
-  try {
-    const { sendCredentials } = require('../utils/email');
-    await sendCredentials(
-      orders[0].email,
-      orders[0].full_name,
-      orders[0].unique_id,
-      newPassword,
-      allUserOrders.map(o => ({ category: o.category, name: o.product_name }))
-    );
-  } catch (e) {
-    console.error('Email sending failed:', e);
-  }
-
-  // Flash credentials for admin
-  const creds = {
-    uniqueId: orders[0].unique_id,
-    password: newPassword,
-    email: orders[0].email,
-    fullName: orders[0].full_name
-  };
-  req.session.flashCredentials = creds;
-
-  if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-    return res.json({
-      success: true,
-      status: 'verified',
-      credentials: creds
-    });
-  }
-
-  res.redirect('/admin/orders?verified=true');
 });
 
 // Reject Transaction / Batch Orders
 router.post('/orders/transaction/:txnId/reject', requireAdmin, async (req, res) => {
-  const db = getDb();
   const txnId = req.params.txnId;
 
-  // Find all orders belonging to this transaction reference
-  const orders = db.prepare(`
-    SELECT o.*, u.email, u.full_name, u.id as uid, p.name as product_name, p.category
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN products p ON o.product_id = p.id
-    WHERE o.payment_reference = ? OR o.payment_reference LIKE ?
-  `).all(txnId, txnId + '|%');
-
-  if (orders.length === 0) {
-    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-      return res.status(404).json({ success: false, error: 'Transaction not found' });
-    }
-    return res.redirect('/admin/orders');
-  }
-
-  // Update status to rejected
   try {
-    const updateStmt = db.prepare(
-      'UPDATE orders SET status = ?, verified_by = ?, verified_at = CURRENT_TIMESTAMP WHERE id = ?'
-    );
-    for (const o of orders) {
-      updateStmt.run('rejected', req.session.userId, o.id);
+    const matchingOrders = await db.orders.listByPaymentReference(txnId);
+    if (matchingOrders.length === 0) {
+      if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+        return res.status(404).json({ success: false, error: 'Transaction not found' });
+      }
+      return res.redirect('/admin/orders');
     }
+
+    const allUsers = await db.users.list();
+    const allProducts = await db.products.listAll();
+
+    const orders = matchingOrders.map(o => {
+      const user = allUsers.find(u => String(u.id) === String(o.user_id));
+      const product = allProducts.find(p => Number(p.id) === Number(o.product_id));
+      return {
+        ...o,
+        email: user ? user.email : '',
+        full_name: user ? user.full_name : '',
+        uid: user ? user.id : '',
+        product_name: product ? product.name : '',
+        category: product ? product.category : ''
+      };
+    });
+
+    for (const o of orders) {
+      await db.orders.update(o.id, {
+        status: 'rejected',
+        verified_by: req.session.userId,
+        verified_at: 'CURRENT_TIMESTAMP'
+      });
+    }
+
+    // Send rejection email
+    try {
+      const { sendRejection } = require('../utils/email');
+      await sendRejection(
+        orders[0].email,
+        orders[0].full_name,
+        txnId.includes('|') ? txnId.split('|')[1] : txnId,
+        orders.map(o => ({ category: o.category, name: o.product_name }))
+      );
+    } catch (e) {
+      console.error('Rejection email sending failed:', e);
+    }
+
+    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+      return res.json({
+        success: true,
+        status: 'rejected'
+      });
+    }
+
+    res.redirect('/admin/orders');
   } catch (err) {
     console.error('Database update failed:', err);
     if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
       return res.status(500).json({ success: false, error: 'Failed to reject transaction' });
     }
-    return res.redirect('/admin/orders');
+    res.redirect('/admin/orders');
   }
-
-  // Send rejection email
-  try {
-    const { sendRejection } = require('../utils/email');
-    await sendRejection(
-      orders[0].email,
-      orders[0].full_name,
-      txnId.includes('|') ? txnId.split('|')[1] : txnId,
-      orders.map(o => ({ category: o.category, name: o.product_name }))
-    );
-  } catch (e) {
-    console.error('Rejection email sending failed:', e);
-  }
-
-  if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-    return res.json({
-      success: true,
-      status: 'rejected'
-    });
-  }
-
-  res.redirect('/admin/orders');
 });
 
 // Delete Transaction / Batch Orders
-router.post('/orders/transaction/:txnId/delete', requireAdmin, (req, res) => {
-  const db = getDb();
+router.post('/orders/transaction/:txnId/delete', requireAdmin, async (req, res) => {
   const txnId = req.params.txnId;
 
   try {
-    db.prepare('DELETE FROM orders WHERE payment_reference = ? OR payment_reference LIKE ?').run(txnId, txnId + '|%');
+    await db.orders.deleteByPaymentReference(txnId);
     if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
       return res.json({ success: true });
     }
@@ -316,124 +373,156 @@ router.post('/orders/transaction/:txnId/delete', requireAdmin, (req, res) => {
   }
 });
 
-// Verify Individual Order (from dashboard quick-verify)
+// Verify Individual Order
 router.post('/orders/:id/verify', requireAdmin, async (req, res) => {
-  const db = getDb();
-  const orderId = parseInt(req.params.id);
-
-  const order = db.prepare(`
-    SELECT o.*, u.email, u.full_name, u.unique_id, u.id as uid, p.name as product_name, p.category
-    FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN products p ON o.product_id = p.id
-    WHERE o.id = ?
-  `).get(orderId);
-
-  if (!order) {
-    return res.redirect('/admin');
-  }
-
-  const userId = order.uid;
-  const newPassword = generatePassword();
-  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  const orderId = req.params.id;
 
   try {
-    db.prepare('UPDATE orders SET status = ?, verified_by = ?, verified_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run('verified', req.session.userId, orderId);
-    db.prepare('UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?').run(passwordHash, newPassword, userId);
+    const order = await db.orders.get(orderId);
+    if (!order) {
+      return res.redirect('/admin');
+    }
+
+    const userId = order.user_id;
+    const newPassword = generatePassword();
+    const passwordHash = bcrypt.hashSync(newPassword, 10);
+
+    await db.orders.update(orderId, {
+      status: 'verified',
+      verified_by: req.session.userId,
+      verified_at: 'CURRENT_TIMESTAMP'
+    });
+
+    await db.users.update(userId, {
+      password_hash: passwordHash,
+      plain_password: newPassword
+    });
+
+    const user = await db.users.get(userId);
+    const allUserOrders = await db.orders.listByUserId(userId);
+    const allProducts = await db.products.listAll();
+
+    const verifiedDetails = allUserOrders.filter(o => o.status === 'verified').map(o => {
+      const product = allProducts.find(p => Number(p.id) === Number(o.product_id));
+      return {
+        category: product ? product.category : 'General',
+        name: product ? product.name : 'Reviewer'
+      };
+    });
+
+    try {
+      const { sendCredentials } = require('../utils/email');
+      await sendCredentials(
+        user.email,
+        user.full_name,
+        user.unique_id,
+        newPassword,
+        verifiedDetails
+      );
+    } catch (e) {
+      console.error('Email sending failed:', e);
+    }
+
+    req.session.flashCredentials = {
+      uniqueId: user.unique_id,
+      password: newPassword,
+      email: user.email,
+      fullName: user.full_name
+    };
+
+    res.redirect('/admin?verified=true');
   } catch (err) {
     console.error('Failed to verify order:', err);
-    return res.redirect('/admin');
+    res.redirect('/admin');
   }
-
-  try {
-    const { sendCredentials } = require('../utils/email');
-    const allUserOrders = db.prepare(`
-      SELECT o.*, p.name as product_name, p.category
-      FROM orders o
-      JOIN products p ON o.product_id = p.id
-      WHERE o.user_id = ? AND o.status = 'verified'
-    `).all(userId);
-    await sendCredentials(
-      order.email,
-      order.full_name,
-      order.unique_id,
-      newPassword,
-      allUserOrders.map(o => ({ category: o.category, name: o.product_name }))
-    );
-  } catch (e) {
-    console.error('Email sending failed:', e);
-  }
-
-  req.session.flashCredentials = {
-    uniqueId: order.unique_id,
-    password: newPassword,
-    email: order.email,
-    fullName: order.full_name
-  };
-
-  res.redirect('/admin?verified=true');
 });
 
 // Users Management
-router.get('/users', requireAdmin, (req, res) => {
-  const db = getDb();
+router.get('/users', requireAdmin, async (req, res) => {
+  try {
+    const allUsers = await db.users.list();
+    const allOrders = await db.orders.listAll();
+    
+    // Fetch active device sessions
+    const allSessions = await db.firestore.collection('device_sessions').where('is_active', '==', 1).get();
+    const activeSessions = allSessions.docs.map(d => d.data());
 
-  const users = db.prepare(`
-    SELECT u.*,
-      (SELECT COUNT(*) FROM orders WHERE user_id = u.id AND status = 'verified') as purchased_count,
-      (SELECT COUNT(*) FROM device_sessions WHERE user_id = u.id AND is_active = 1) as active_devices
-    FROM users u
-    WHERE role = 'user'
-    ORDER BY u.created_at DESC
-  `).all();
+    const users = allUsers
+      .filter(u => u.role === 'user')
+      .map(u => {
+        const purchasedCount = allOrders.filter(o => String(o.user_id) === String(u.id) && o.status === 'verified').length;
+        const activeDevicesCount = activeSessions.filter(s => String(s.user_id) === String(u.id)).length;
+        return {
+          ...u,
+          purchased_count: purchasedCount,
+          active_devices: activeDevicesCount
+        };
+      });
 
-  res.render('admin/users', {
-    title: 'Manage Users — TeachSmart Academy',
-    users,
-    user: req.session
-  });
+    res.render('admin/users', {
+      title: 'Manage Users — TeachSmart Academy',
+      users,
+      user: req.session
+    });
+  } catch (err) {
+    console.error('Failed to load users:', err);
+    res.status(500).render('error', {
+      title: 'Users Load Error',
+      message: 'Failed to retrieve users list.',
+      user: req.session
+    });
+  }
 });
 
 // Toggle User Active
-router.post('/users/:id/toggle', requireAdmin, (req, res) => {
-  const db = getDb();
-  const targetUser = db.prepare('SELECT * FROM users WHERE id = ?').get(parseInt(req.params.id));
-  if (targetUser) {
-    db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(targetUser.is_active ? 0 : 1, targetUser.id);
+router.post('/users/:id/toggle', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const targetUser = await db.users.get(userId);
+    if (targetUser) {
+      await db.users.update(userId, {
+        is_active: targetUser.is_active ? 0 : 1
+      });
+    }
+    res.redirect('/admin/users');
+  } catch (err) {
+    console.error('Toggle user active error:', err);
+    res.redirect('/admin/users');
   }
-  res.redirect('/admin/users');
 });
 
 // Reset User Devices
-router.post('/users/:id/reset-devices', requireAdmin, (req, res) => {
-  const db = getDb();
-  db.prepare('UPDATE device_sessions SET is_active = 0 WHERE user_id = ?').run(parseInt(req.params.id));
-  res.redirect('/admin/users');
+router.post('/users/:id/reset-devices', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    await db.device_sessions.deactivateAllForUser(userId);
+    res.redirect('/admin/users');
+  } catch (err) {
+    console.error('Reset devices error:', err);
+    res.redirect('/admin/users');
+  }
 });
 
 // Delete User Account
-router.post('/users/:id/delete', requireAdmin, (req, res) => {
-  const db = getDb();
-  const userId = parseInt(req.params.id);
-
-  if (isNaN(userId)) {
-    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-      return res.status(400).json({ success: false, error: 'Invalid user ID' });
-    }
-    return res.redirect('/admin/users');
-  }
+router.post('/users/:id/delete', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
 
   try {
-    db.prepare('UPDATE orders SET verified_by = NULL WHERE verified_by = ?').run(userId);
-    db.prepare('DELETE FROM device_sessions WHERE user_id = ?').run(userId);
-    db.prepare('DELETE FROM security_alerts WHERE user_id = ?').run(userId);
-    db.prepare('DELETE FROM orders WHERE user_id = ?').run(userId);
-    const result = db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+    const userOrdersRef = await db.firestore.collection('orders').where('user_id', '==', userId).get();
+    const verifiedOrdersRef = await db.firestore.collection('orders').where('verified_by', '==', userId).get();
+    const sessionsRef = await db.firestore.collection('device_sessions').where('user_id', '==', userId).get();
+    const alertsRef = await db.firestore.collection('security_alerts').where('user_id', '==', userId).get();
 
-    if (result.changes === 0) {
-      console.error('User not found for deletion:', userId);
-    }
+    const batch = db.firestore.batch();
+    userOrdersRef.docs.forEach(doc => batch.delete(doc.ref));
+    verifiedOrdersRef.docs.forEach(doc => batch.update(doc.ref, { verified_by: null }));
+    sessionsRef.docs.forEach(doc => batch.delete(doc.ref));
+    alertsRef.docs.forEach(doc => batch.delete(doc.ref));
+    batch.delete(db.firestore.collection('users').doc(userId));
+    
+    await batch.commit();
 
     if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
       return res.json({ success: true });
@@ -449,37 +538,50 @@ router.post('/users/:id/delete', requireAdmin, (req, res) => {
 });
 
 // Content Management
-router.get('/content', requireAdmin, (req, res) => {
-  const db = getDb();
-  const products = db.prepare('SELECT * FROM products ORDER BY category, name').all();
+router.get('/content', requireAdmin, async (req, res) => {
+  try {
+    const products = await db.products.listAll();
+    
+    products.sort((a, b) => {
+      if (a.category !== b.category) return a.category.localeCompare(b.category);
+      return a.name.localeCompare(b.name);
+    });
 
-  // Get page counts
-  products.forEach(p => {
-    p.pageCount = db.prepare('SELECT COUNT(*) as count FROM content_pages WHERE product_id = ?').get(p.id).count;
-  });
-
-  const selectedProductId = parseInt(req.query.product) || null;
-  let selectedProduct = null;
-  let selectedPages = [];
-  let hasPdf = false;
-
-  if (selectedProductId) {
-    selectedProduct = products.find(p => p.id === selectedProductId);
-    if (selectedProduct) {
-      selectedPages = db.prepare('SELECT * FROM content_pages WHERE product_id = ? ORDER BY page_number').all(selectedProductId);
-      const pdfPath = path.join(__dirname, '..', 'data', 'pdfs', `${selectedProductId}.pdf`);
-      hasPdf = fs.existsSync(pdfPath);
+    // Get page counts
+    for (const p of products) {
+      p.pageCount = await db.content_pages.countByProductId(p.id);
     }
-  }
 
-  res.render('admin/content', {
-    title: 'Manage Content — TeachSmart Academy',
-    products,
-    selectedProduct,
-    selectedPages,
-    hasPdf,
-    user: req.session
-  });
+    const selectedProductId = parseInt(req.query.product) || null;
+    let selectedProduct = null;
+    let selectedPages = [];
+    let hasPdf = false;
+
+    if (selectedProductId) {
+      selectedProduct = products.find(p => Number(p.id) === selectedProductId);
+      if (selectedProduct) {
+        selectedPages = await db.content_pages.listByProductId(selectedProductId);
+        const pdfPath = path.join(__dirname, '..', 'data', 'pdfs', `${selectedProductId}.pdf`);
+        hasPdf = fs.existsSync(pdfPath);
+      }
+    }
+
+    res.render('admin/content', {
+      title: 'Manage Content — TeachSmart Academy',
+      products,
+      selectedProduct,
+      selectedPages,
+      hasPdf,
+      user: req.session
+    });
+  } catch (err) {
+    console.error('Failed to load content management:', err);
+    res.status(500).render('error', {
+      title: 'Content Error',
+      message: 'Failed to load content management dashboard.',
+      user: req.session
+    });
+  }
 });
 
 // Upload PDF route
@@ -499,105 +601,149 @@ router.post('/content/:productId/delete-pdf', requireAdmin, (req, res) => {
 });
 
 // Add text content page
-router.post('/content/:productId/add-page', requireAdmin, (req, res) => {
-  const db = getDb();
+router.post('/content/:productId/add-page', requireAdmin, async (req, res) => {
   const { title, content } = req.body;
   const productId = parseInt(req.params.productId);
 
-  const lastPage = db.prepare(
-    'SELECT MAX(page_number) as maxPage FROM content_pages WHERE product_id = ?'
-  ).get(productId);
+  try {
+    const pages = await db.content_pages.listByProductId(productId);
+    const pageNumber = pages.length + 1;
 
-  const pageNumber = (lastPage.maxPage || 0) + 1;
+    await db.content_pages.insert({
+      product_id: productId,
+      page_number: pageNumber,
+      title,
+      content
+    });
 
-  db.prepare(
-    'INSERT INTO content_pages (product_id, page_number, title, content) VALUES (?, ?, ?, ?)'
-  ).run(productId, pageNumber, title, content);
+    await db.products.update(productId, { total_pages: pageNumber });
 
-  db.prepare('UPDATE products SET total_pages = ? WHERE id = ?').run(pageNumber, productId);
-
-  res.redirect('/admin/content?product=' + productId);
+    res.redirect('/admin/content?product=' + productId);
+  } catch (err) {
+    console.error('Failed to add page:', err);
+    res.redirect('/admin/content?product=' + productId);
+  }
 });
 
 // Delete text content page
-router.post('/content/page/:pageId/delete', requireAdmin, (req, res) => {
-  const db = getDb();
-  const page = db.prepare('SELECT * FROM content_pages WHERE id = ?').get(parseInt(req.params.pageId));
-  if (page) {
-    db.prepare('DELETE FROM content_pages WHERE id = ?').run(page.id);
-    // Reorder remaining pages
-    const remaining = db.prepare(
-      'SELECT id FROM content_pages WHERE product_id = ? ORDER BY page_number'
-    ).all(page.product_id);
-    remaining.forEach((p, i) => {
-      db.prepare('UPDATE content_pages SET page_number = ? WHERE id = ?').run(i + 1, p.id);
-    });
-    db.prepare('UPDATE products SET total_pages = ? WHERE id = ?').run(remaining.length, page.product_id);
+router.post('/content/page/:pageId/delete', requireAdmin, async (req, res) => {
+  const pageId = req.params.pageId;
+
+  try {
+    const page = await db.content_pages.get(pageId);
+    if (page) {
+      await db.content_pages.delete(pageId);
+      // Reorder remaining pages
+      const remaining = await db.content_pages.listByProductId(page.product_id);
+      for (let i = 0; i < remaining.length; i++) {
+        await db.firestore.collection('content_pages').doc(remaining[i].id).update({
+          page_number: i + 1
+        });
+      }
+      await db.products.update(page.product_id, { total_pages: remaining.length });
+    }
+    res.redirect('/admin/content');
+  } catch (err) {
+    console.error('Failed to delete page:', err);
+    res.redirect('/admin/content');
   }
-  res.redirect('/admin/content');
 });
 
 // Coupons
-router.get('/coupons', requireAdmin, (req, res) => {
-  const db = getDb();
-  const coupons = db.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all();
-  res.render('admin/coupons', {
-    title: 'Manage Coupons — TeachSmart Academy',
-    coupons,
-    user: req.session
-  });
+router.get('/coupons', requireAdmin, async (req, res) => {
+  try {
+    const coupons = await db.coupons.listAll();
+    res.render('admin/coupons', {
+      title: 'Manage Coupons — TeachSmart Academy',
+      coupons,
+      user: req.session
+    });
+  } catch (err) {
+    console.error('Failed to list coupons:', err);
+    res.status(500).render('error', {
+      title: 'Coupons Error',
+      message: 'Failed to retrieve coupons list.',
+      user: req.session
+    });
+  }
 });
 
-router.post('/coupons/create', requireAdmin, (req, res) => {
-  const db = getDb();
+router.post('/coupons/create', requireAdmin, async (req, res) => {
   const { code, discount_percent, discount_amount, max_uses, expires_at } = req.body;
-  db.prepare(
-    'INSERT INTO coupons (code, discount_percent, discount_amount, max_uses, expires_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(
-    code.toUpperCase(),
-    parseFloat(discount_percent) || 0,
-    parseFloat(discount_amount) || 0,
-    parseInt(max_uses) || -1,
-    expires_at || null
-  );
-  res.redirect('/admin/coupons');
+
+  try {
+    await db.coupons.insert({
+      code: code.toUpperCase(),
+      discount_percent: parseFloat(discount_percent) || 0,
+      discount_amount: parseFloat(discount_amount) || 0,
+      max_uses: parseInt(max_uses) || -1,
+      expires_at: expires_at || null
+    });
+    res.redirect('/admin/coupons');
+  } catch (err) {
+    console.error('Failed to create coupon:', err);
+    res.redirect('/admin/coupons');
+  }
 });
 
 // Security Alerts View
-router.get('/alerts', requireAdmin, (req, res) => {
-  const db = getDb();
+router.get('/alerts', requireAdmin, async (req, res) => {
+  try {
+    const alerts = await db.security_alerts.listLatest(100);
+    const allUsers = await db.users.list();
 
-  // Get latest 100 alerts
-  const alerts = db.prepare(`
-    SELECT a.*, u.unique_id as user_unique_id, u.email
-    FROM security_alerts a
-    LEFT JOIN users u ON a.user_id = u.id
-    ORDER BY a.created_at DESC
-    LIMIT 100
-  `).all();
+    const formattedAlerts = alerts.map(a => {
+      const user = allUsers.find(u => String(u.id) === String(a.user_id));
+      return {
+        ...a,
+        user_unique_id: user ? user.unique_id : 'N/A',
+        email: user ? user.email : 'N/A'
+      };
+    });
 
-  res.render('admin/alerts', {
-    title: 'Security Alerts — TeachSmart Academy',
-    alerts,
-    user: req.session
-  });
+    res.render('admin/alerts', {
+      title: 'Security Alerts — TeachSmart Academy',
+      alerts: formattedAlerts,
+      user: req.session
+    });
+  } catch (err) {
+    console.error('Failed to load security alerts:', err);
+    res.status(500).render('error', {
+      title: 'Alerts Error',
+      message: 'Failed to retrieve security alerts.',
+      user: req.session
+    });
+  }
 });
 
 // Clear Alerts Handler
-router.post('/alerts/clear', requireAdmin, (req, res) => {
-  const db = getDb();
-  db.prepare('DELETE FROM security_alerts').run();
-  res.redirect('/admin/alerts');
+router.post('/alerts/clear', requireAdmin, async (req, res) => {
+  try {
+    await db.security_alerts.clearAll();
+    res.redirect('/admin/alerts');
+  } catch (err) {
+    console.error('Failed to clear alerts:', err);
+    res.redirect('/admin/alerts');
+  }
 });
 
 // Delete Individual Alert
-router.post('/alerts/:id/delete', requireAdmin, (req, res) => {
-  const db = getDb();
-  db.prepare('DELETE FROM security_alerts WHERE id = ?').run(parseInt(req.params.id));
-  if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-    return res.json({ success: true });
+router.post('/alerts/:id/delete', requireAdmin, async (req, res) => {
+  const alertId = req.params.id;
+
+  try {
+    await db.security_alerts.delete(alertId);
+    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+      return res.json({ success: true });
+    }
+    res.redirect('/admin/alerts');
+  } catch (err) {
+    console.error('Failed to delete alert:', err);
+    if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    res.redirect('/admin/alerts');
   }
-  res.redirect('/admin/alerts');
 });
 
 module.exports = router;

@@ -109,7 +109,7 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   padding-top: 80px;
-  overflow-x: hidden;
+  overflow-x: clip; /* Use clip instead of hidden — hidden breaks fixed positioning */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -149,29 +149,30 @@ img {
 
 /* ---- Navigation (Premium Floating Pill Design) ---- */
 .navbar {
-  position: fixed;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed !important;
+  top: 8px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
   width: 92%;
   max-width: 1280px;
   height: 60px;
-  z-index: 9999;
+  z-index: 9999 !important;
   padding: 0 1.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgb(10, 10, 12);
+  background: rgba(10, 10, 12, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: none;
-  will-change: transform;
-  isolation: isolate;
+  transition: background-color 0.3s ease;
+  /* NOTE: isolation:isolate removed — it creates a new stacking context that interferes with fixed positioning */
 }
 
 .light-theme .navbar {
-  background: rgb(255, 255, 255);
+  background: rgba(255, 255, 255, 0.88);
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
