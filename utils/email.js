@@ -141,4 +141,51 @@ async function sendRejection(email, fullName, orderRef, products) {
   }
 }
 
-module.exports = { sendCredentials, sendOrderConfirmation, sendRejection };
+async function sendAdminOrderNotification(fullName, userEmail, phone, orderRef, products, total, paymentMethod, paymentRef) {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@reviewvault.com';
+  const productList = products.map(p => `• ${p.name} — ₱${p.price.toFixed(2)}`).join('\n');
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || 'TeachSmart Academy <noreply@teachsmart.com>',
+    to: adminEmail,
+    subject: `🔔 New Order Received — ${orderRef}`,
+    html: `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0A; color: #E8E8F0; padding: 40px; border-radius: 16px; border: 1px solid #222;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #FFFFFF; font-size: 28px; margin: 0; font-weight: 800; letter-spacing: -1px;">TeachSmart Admin Notification</h1>
+          <p style="color: #00E0A8; margin-top: 5px; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1.5px; font-weight: 700;">New Order Purchased</p>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid #222; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+          <h2 style="color: #FFFFFF; margin-top: 0; font-size: 18px;">Customer Information</h2>
+          <p style="margin: 6px 0;"><strong>Name:</strong> ${fullName}</p>
+          <p style="margin: 6px 0;"><strong>Email:</strong> ${userEmail}</p>
+          <p style="margin: 6px 0;"><strong>Phone:</strong> ${phone || 'N/A'}</p>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid #222; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+          <h2 style="color: #FFFFFF; margin-top: 0; font-size: 18px;">Order Details</h2>
+          <p style="margin: 6px 0;"><strong>Order Reference:</strong> ${orderRef}</p>
+          <p style="margin: 6px 0;"><strong>Total Amount:</strong> ₱${total.toFixed(2)}</p>
+          <p style="margin: 6px 0;"><strong>Payment Method:</strong> ${paymentMethod}</p>
+          <p style="margin: 6px 0;"><strong>Payment Reference:</strong> ${paymentRef}</p>
+          
+          <h3 style="color: #888; margin-top: 16px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Purchased Items</h3>
+          <pre style="color: #E8E8F0; font-family: inherit; white-space: pre-wrap; margin: 0; line-height: 1.5; background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 6px;">${productList}</pre>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    await getTransporter().sendMail(mailOptions);
+    console.log(`✓ Admin notification email sent to ${adminEmail}`);
+    return true;
+  } catch (err) {
+    console.error('✗ Admin notification email failed:', err.message);
+    return false;
+  }
+}
+
+module.exports = { sendCredentials, sendOrderConfirmation, sendRejection, sendAdminOrderNotification };
+

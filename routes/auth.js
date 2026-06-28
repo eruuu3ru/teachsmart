@@ -197,6 +197,14 @@ router.post('/register', async (req, res) => {
       console.log('Email not configured, skipping order confirmation');
     }
 
+    // Try sending order notification email to Admin
+    try {
+      const { sendAdminOrderNotification } = require('../utils/email');
+      await sendAdminOrderNotification(fullName, email, phone, orderRef, selectedProductDetails, total, payment_method, payment_reference);
+    } catch (e) {
+      console.error('[Admin Email] Notification trigger failed:', e);
+    }
+
     res.render('order-success', {
       title: 'Order Submitted — TeachSmart Academy',
       orderRef,
